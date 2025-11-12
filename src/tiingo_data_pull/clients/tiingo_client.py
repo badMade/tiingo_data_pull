@@ -1,6 +1,7 @@
 """Client for retrieving market data from Tiingo."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from typing import Iterable, List, Optional
 
@@ -87,11 +88,22 @@ class TiingoClient:
             Mapping of ticker symbol to list of :class:`PriceBar` objects.
         """
 
+        tickers_list = list(tickers)
         results: dict[str, List[PriceBar]] = {}
-        for ticker in tickers:
-            results[ticker] = self.fetch_price_history(
-                ticker,
-                start_date=start_date,
-                end_date=end_date,
-            )
+        
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_ticker = {
+                executor.submit(
+                    self.fetch_price_history,
+                    ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                ): ticker
+                for ticker in tickers_list
+            }
+            
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                results[ticker] = future.result()
+        
         return results
