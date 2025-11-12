@@ -7,6 +7,32 @@ __pycache__/
 .venv/
 venv/
 env/
+# pytest cache
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+# Virtual environments
+venv/
+env/
+ENV/
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+.venv/
 
 # IDE
 .vscode/
@@ -24,3 +50,22 @@ build/
 
 # Environment variables
 .env
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+exports/
+*.json.bak
+# OS files
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
