@@ -175,17 +175,13 @@ class NotionClient:
         return {"and": filters}
 
     def _extract_date_from_page(self, page: Dict[str, object]) -> Optional[str]:
-        properties = page.get("properties", {})
-        date_property = properties.get(self._properties.date_property)
-        if not isinstance(date_property, dict):
+        try:
+            date_str = page["properties"][self._properties.date_property]["date"]["start"]
+            if isinstance(date_str, str):
+                return date_str
             return None
-        date_value = date_property.get("date")
-        if not isinstance(date_value, dict):
+        except (KeyError, TypeError):
             return None
-        start_value = date_value.get("start")
-        if not isinstance(start_value, str):
-            return None
-        return start_value
 
     def _price_to_page_payload(self, price: PriceBar) -> Dict[str, object]:
         properties: Dict[str, object] = {
