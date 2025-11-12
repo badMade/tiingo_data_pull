@@ -1,6 +1,7 @@
 """Pipeline orchestrating Tiingo ingestion, Notion sync, and Drive export."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -102,11 +103,27 @@ class TiingoToNotionPipeline:
         end_date: Optional[date],
     ) -> MutableMapping[str, List[PriceBar]]:
         filtered: MutableMapping[str, List[PriceBar]] = {}
+        
+        # Fetch existing dates concurrently for all tickers
+        existing_dates_by_ticker: MutableMapping[str, set[str]] = {}
+        with ThreadPoolExecutor() as executor:
+            future_to_ticker = {
+                executor.submit(
+                    self._notion_client.fetch_existing_dates,
+                    ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                ): ticker
+                for ticker in prices_by_ticker.keys()
+            }
+            
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                existing_dates_by_ticker[ticker] = future.result()
+        
+        # Filter prices based on fetched existing dates
         for ticker, prices in prices_by_ticker.items():
-            existing_dates = self._notion_client.fetch_existing_dates(
-                ticker,
-                start_date=start_date,
-                end_date=end_date,
-            )
+            existing_dates = existing_dates_by_ticker[ticker]
             filtered[ticker] = [price for price in prices if price.date.isoformat() not in existing_dates]
+        
         return filtered

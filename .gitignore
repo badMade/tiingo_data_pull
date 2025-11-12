@@ -3,6 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# pytest cache
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
 # Virtual environments
 venv/
 env/
@@ -28,6 +36,13 @@ env/
 *.swp
 *.swo
 
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+exports/
+*.json.bak
 # OS files
 .DS_Store
 
