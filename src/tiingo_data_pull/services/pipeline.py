@@ -54,6 +54,7 @@ class TiingoToNotionPipeline:
         *,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        dry_run: bool = False,
     ) -> List[Path]:
         """Synchronise Tiingo data to Notion and upload batched JSON exports.
 
@@ -61,6 +62,7 @@ class TiingoToNotionPipeline:
             tickers: Iterable of ticker symbols.
             start_date: Optional inclusive start date. ``None`` fetches all available history.
             end_date: Optional inclusive end date. ``None`` fetches through the latest close.
+            dry_run: If ``True``, fetch data and write JSON but skip Notion/Drive updates.
 
         Returns:
             List of :class:`Path` objects for each uploaded JSON file.
@@ -77,16 +79,18 @@ class TiingoToNotionPipeline:
             if not any(filtered.values()):
                 continue
 
-            for ticker, prices in filtered.items():
-                if prices:
-                    self._notion_client.create_price_pages(prices)
+            if not dry_run:
+                for ticker, prices in filtered.items():
+                    if prices:
+                        self._notion_client.create_price_pages(prices)
 
             json_path = write_prices_by_ticker(
                 filtered,
                 output_dir=self._config.output_directory,
                 prefix=self._config.json_prefix,
             )
-            self._drive_client.upload_json(str(json_path))
+            if not dry_run:
+                self._drive_client.upload_json(str(json_path))
             uploaded_files.append(json_path)
         return uploaded_files
 
