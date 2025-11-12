@@ -1,8 +1,12 @@
-# Byte-compiled / optimized / DLL files
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
+# Virtual environment
+.venv/
+venv/
+env/
 # pytest cache
 .pytest_cache/
 
@@ -36,6 +40,16 @@ env/
 *.swp
 *.swo
 
+# pytest
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
 # OS
 .DS_Store
 Thumbs.db
