@@ -72,7 +72,7 @@ class PriceBar:
             A :class:`datetime` parsed from the provided value.
         """
 
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return datetime.fromisoformat(value)
 
     def to_json_dict(self) -> Dict[str, Any]:
         """Convert the price bar into a JSON serialisable dictionary.
