@@ -1,2 +1,0 @@
-[console_scripts]
-tiingo-data-pull = tiingo_data_pull.cli:run
