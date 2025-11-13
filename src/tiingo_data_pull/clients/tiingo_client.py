@@ -1,11 +1,14 @@
 """Client for retrieving market data from Tiingo."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from typing import Iterable, List, Optional
 
 import requests
+from requests import Session
+import threading
 
 from ..models import PriceBar
 
@@ -19,7 +22,8 @@ class TiingoClient:
         self,
         api_key: str,
         *,
-        session: Optional[requests.Session] = None,
+        session: Optional[Session] = None,
+        session_factory: Optional[Callable[[], Session]] = None,
         timeout: int = 30,
     ) -> None:
         """Initialise the Tiingo client.
@@ -27,12 +31,57 @@ class TiingoClient:
         Args:
             api_key: The Tiingo API key.
             session: Optional :class:`requests.Session` for connection pooling.
+            session_factory: Optional callable returning a configured
+                :class:`requests.Session`. When provided, it takes precedence
+                over ``session`` and is invoked separately for each thread.
             timeout: Request timeout in seconds.
         """
 
         self._api_key = api_key
-        self._session = session or requests.Session()
+        if session_factory is not None:
+            self._session_factory: Optional[Callable[[], Session]] = session_factory
+        elif session is None:
+            self._session_factory = requests.Session
+        else:
+            self._session_factory = None
+        self._session_template = session
+        self._thread_local = threading.local()
         self._timeout = timeout
+
+    def _clone_session(self) -> Session:
+        """Create a new :class:`requests.Session` using the template, if any."""
+
+        base = self._session_template
+        if base is None:
+            return requests.Session()
+
+        cloned = requests.Session()
+        cloned.headers.update(base.headers)
+        cloned.params.update(base.params)
+        cloned.auth = base.auth
+        cloned.proxies.update(base.proxies)
+        cloned.hooks = {k: v[:] for k, v in base.hooks.items()}
+        cloned.verify = base.verify
+        cloned.cert = base.cert
+        cloned.max_redirects = base.max_redirects
+        cloned.trust_env = base.trust_env
+        cloned.cookies.update(base.cookies)
+        for prefix, adapter in base.adapters.items():
+            cloned.mount(prefix, adapter)
+        return cloned
+
+    def _get_session(self) -> Session:
+        session = getattr(self._thread_local, "session", None)
+        if session is None:
+            factory = self._session_factory
+            if factory is None:
+                session = self._clone_session()
+            else:
+                session = factory()
+            if session is None:
+                session = requests.Session()
+            self._thread_local.session = session
+        return session
 
     def fetch_price_history(
         self,
@@ -58,7 +107,7 @@ class TiingoClient:
         if end_date is not None:
             params["endDate"] = end_date.isoformat()
 
-        response = self._session.get(
+        response = self._get_session().get(
             f"{self.base_url}/{ticker}/prices",
             params=params,
             timeout=self._timeout,
