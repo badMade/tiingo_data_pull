@@ -9,8 +9,6 @@ from datetime import date
 from pathlib import Path
 from typing import List, Optional
 
-from .clients.notion_client import NotionClient, NotionPropertyConfig
-from .clients.drive_client import GoogleDriveClient
 from .clients.tiingo_client import TiingoClient
 from .integrations.notion_client import NotionClient, load_notion_config
 from .services.pipeline import PipelineConfig, TiingoToNotionPipeline
@@ -88,9 +86,6 @@ def run(argv: Optional[List[str]] = None) -> None:
     tickers = _load_tickers(args.tickers)
 
     tiingo_api_key = _require_env("TIINGO_API_KEY")
-    notion_api_key = _require_env("NOTION_API_KEY")
-    notion_database_id = _require_env("NOTION_DATABASE_ID")
-    service_account_file = _require_env("GOOGLE_SERVICE_ACCOUNT_FILE")
     drive_folder_id = _require_env("GOOGLE_DRIVE_FOLDER_ID")
     if not args.dry_run:
         _require_env("GOOGLE_OAUTH_CLIENT_SECRETS_FILE")
@@ -105,11 +100,7 @@ def run(argv: Optional[List[str]] = None) -> None:
     )
 
     tiingo_client = TiingoClient(tiingo_api_key)
-    notion_client = NotionClient(
-        notion_api_key,
-        notion_database_id,
-        property_config=property_config,
-    )
+    notion_client = NotionClient(notion_config)
     pipeline = TiingoToNotionPipeline(
         tiingo_client,
         notion_client,

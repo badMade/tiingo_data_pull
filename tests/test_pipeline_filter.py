@@ -1,7 +1,6 @@
 """Tests for pipeline filtering logic."""
 from __future__ import annotations
 
-import asyncio
 from datetime import date
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -74,11 +73,11 @@ async def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeli
             make_price("AAPL", date(2024, 1, 2)),
         ]
     }
-    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = await pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    ))
+    )
     assert [price.date for price in filtered["AAPL"]] == [date(2024, 1, 2)]
 
 
@@ -94,9 +93,9 @@ async def test_filter_new_prices_handles_empty_existing() -> None:
             make_price("MSFT", date(2024, 2, 1)),
         ]
     }
-    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = await pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    ))
+    )
     assert len(filtered["MSFT"]) == 1
