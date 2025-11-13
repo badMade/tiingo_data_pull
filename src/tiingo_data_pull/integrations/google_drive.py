@@ -118,7 +118,8 @@ def _token_path() -> Path:
 def _find_existing_file(service: "Resource", filename: str, folder_id: str) -> Optional[str]:
     """Locate an existing Drive file with the same name inside the folder."""
 
-    query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
+    escaped_filename = filename.replace("\\", "\\\\").replace("'", "\\'")
+    query = f"name = '{escaped_filename}' and '{folder_id}' in parents and trashed = false"
     response = (
         service.files()
         .list(q=query, spaces="drive", fields="files(id)", pageSize=1)
