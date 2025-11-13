@@ -58,7 +58,7 @@ class PriceBar:
             high=float(payload.get("high", 0.0)),
             low=float(payload.get("low", 0.0)),
             volume=float(payload.get("volume", 0.0)),
-            adj_close=float(payload["adjClose"]) if payload.get("adjClose") is not None else None,
+            adj_close=float(adj_close_val) if (adj_close_val := payload.get("adjClose")) is not None else None,
         )
 
     @staticmethod
@@ -72,7 +72,7 @@ class PriceBar:
             A :class:`datetime` parsed from the provided value.
         """
 
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return datetime.fromisoformat(value)
 
     def to_json_dict(self) -> Dict[str, Any]:
         """Convert the price bar into a JSON serialisable dictionary.

@@ -21,10 +21,19 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+.venv
+env/
 venv/
 ENV/
-env/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/

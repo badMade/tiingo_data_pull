@@ -17,14 +17,11 @@ This project automates the process of collecting historical market data from the
    python -m venv .venv
    source .venv/bin/activate
    ```
-2. Install dependencies:
+2. Install the package in editable mode:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
-3. Make the `src/` directory discoverable (one-time per shell):
-   ```bash
-   export PYTHONPATH="$(pwd)/src:${PYTHONPATH}"
-   ```
+   This will install all dependencies and make the `tiingo_data_pull` package importable.
 
 ## Configuration
 Set the following environment variables before running the pipeline:

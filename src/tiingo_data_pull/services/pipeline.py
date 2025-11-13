@@ -1,6 +1,7 @@
 """Pipeline orchestrating Tiingo ingestion, Notion sync, and Drive export."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -54,6 +55,7 @@ class TiingoToNotionPipeline:
         *,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        dry_run: bool = False,
     ) -> List[Path]:
         """Synchronise Tiingo data to Notion and upload batched JSON exports.
 
@@ -61,6 +63,7 @@ class TiingoToNotionPipeline:
             tickers: Iterable of ticker symbols.
             start_date: Optional inclusive start date. ``None`` fetches all available history.
             end_date: Optional inclusive end date. ``None`` fetches through the latest close.
+            dry_run: If ``True``, fetch data and write JSON but skip Notion/Drive updates.
 
         Returns:
             List of :class:`Path` objects for each uploaded JSON file.
@@ -77,16 +80,18 @@ class TiingoToNotionPipeline:
             if not any(filtered.values()):
                 continue
 
-            for ticker, prices in filtered.items():
-                if prices:
-                    self._notion_client.create_price_pages(prices)
+            if not dry_run:
+                for ticker, prices in filtered.items():
+                    if prices:
+                        self._notion_client.create_price_pages(prices)
 
             json_path = write_prices_by_ticker(
                 filtered,
                 output_dir=self._config.output_directory,
                 prefix=self._config.json_prefix,
             )
-            self._drive_client.upload_json(str(json_path))
+            if not dry_run:
+                self._drive_client.upload_json(str(json_path))
             uploaded_files.append(json_path)
         return uploaded_files
 
@@ -98,11 +103,23 @@ class TiingoToNotionPipeline:
         end_date: Optional[date],
     ) -> MutableMapping[str, List[PriceBar]]:
         filtered: MutableMapping[str, List[PriceBar]] = {}
-        for ticker, prices in prices_by_ticker.items():
-            existing_dates = self._notion_client.fetch_existing_dates(
-                ticker,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            filtered[ticker] = [price for price in prices if price.date.isoformat() not in existing_dates]
+        
+        # Fetch existing dates concurrently for all tickers
+        with ThreadPoolExecutor() as executor:
+            future_to_ticker = {
+                executor.submit(
+                    self._notion_client.fetch_existing_dates,
+                    ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                ): ticker
+                for ticker in prices_by_ticker.keys()
+            }
+            
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                existing_dates = future.result()
+                prices = prices_by_ticker[ticker]
+                filtered[ticker] = [price for price in prices if price.date.isoformat() not in existing_dates]
+        
         return filtered
