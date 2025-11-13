@@ -110,11 +110,6 @@ def _read_config_value(
     env: Mapping[str, str],
     env_key: str,
 ) -> Optional[str]:
-    value = file_data.get(key)
-    if isinstance(value, str) and value:
-        # Expand environment variables in the value (e.g., ${VAR} or $VAR)
-        expanded_value = os.path.expandvars(value)
-        return expanded_value
     env_value = env.get(env_key)
     if env_value:
         return env_value
