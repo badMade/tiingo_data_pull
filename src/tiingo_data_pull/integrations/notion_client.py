@@ -1,6 +1,7 @@
 """Integration helpers for interacting with the Notion API."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -9,7 +10,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, Mapping, MutableMapping, Optional, Sequence, Set
 
-from notion_client import Client
+from notion_client import AsyncClient
 from notion_client.errors import APIResponseError
 
 from ..models import PriceBar
@@ -87,8 +88,9 @@ def load_notion_config(
     default_mapping = NotionPropertyMapping()
     mapping_kwargs: MutableMapping[str, str] = {
         field.name: str(
-            properties_section.get(field.name)
-            or env.get(f"NOTION_{field.name.upper()}_PROPERTY", getattr(default_mapping, field.name))
+            env.get(f"NOTION_{field.name.upper()}_PROPERTY")
+            or properties_section.get(field.name)
+            or getattr(default_mapping, field.name)
         )
         for field in fields(NotionPropertyMapping)
     }
@@ -110,10 +112,15 @@ def _read_config_value(
 ) -> Optional[str]:
     value = file_data.get(key)
     if isinstance(value, str) and value:
-        return value
+        # Expand environment variables in the value (e.g., ${VAR} or $VAR)
+        expanded_value = os.path.expandvars(value)
+        return expanded_value
     env_value = env.get(env_key)
     if env_value:
         return env_value
+    value = file_data.get(key)
+    if isinstance(value, str) and value:
+        return value
     return None
 
 
@@ -137,12 +144,12 @@ class NotionClient:
         """Initialise the Notion client."""
 
         self._config = config
-        self._client = Client(auth=config.api_key)
+        self._client = AsyncClient(auth=config.api_key)
         self._page_size = max(1, min(page_size, 100))
         self._batch_size = max(1, batch_size)
         self._log = logger or LOGGER
 
-    def query_existing_dates(
+    async def query_existing_dates(
         self,
         ticker: str,
         *,
@@ -165,7 +172,7 @@ class NotionClient:
                 query_kwargs["start_cursor"] = start_cursor
 
             try:
-                response = self._client.databases.query(**query_kwargs)
+                response = await self._client.databases.query(**query_kwargs)
             except APIResponseError as exc:  # pragma: no cover - SDK bubble up
                 self._log.error("Failed to query Notion for %s: %s", ticker, exc)
                 raise
@@ -180,7 +187,7 @@ class NotionClient:
 
         return seen_dates
 
-    def create_price_rows(self, prices: Sequence[PriceBar]) -> List[str]:
+    async def create_price_rows(self, prices: Sequence[PriceBar]) -> List[str]:
         """Create Notion pages for the provided prices."""
 
         created_ids: List[str] = []
@@ -188,21 +195,19 @@ class NotionClient:
             return created_ids
 
         for batch in chunked(prices, self._batch_size):
-            for price in batch:
-                try:
-                    response = self._client.pages.create(
-                        parent={"database_id": self._config.database_id},
-                        properties=self._price_properties(price),
-                    )
-                except APIResponseError as exc:  # pragma: no cover - SDK bubble up
+            tasks = [self._create_price_page(price) for price in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for price, result in zip(batch, results):
+                if isinstance(result, Exception):
                     self._log.warning(
                         "Failed to create Notion row for %s on %s: %s",
                         price.ticker,
                         price.date.isoformat(),
-                        exc,
+                        result,
                     )
                     continue
-                created_id = response.get("id", "")
+                created_id = result.get("id", "")
                 created_ids.append(created_id)
                 self._log.debug(
                     "Created Notion row %s for %s on %s",
@@ -212,6 +217,13 @@ class NotionClient:
                 )
 
         return created_ids
+
+    async def _create_price_page(self, price: PriceBar) -> Dict[str, object]:
+        """Create a single Notion page for the provided price."""
+        return await self._client.pages.create(
+            parent={"database_id": self._config.database_id},
+            properties=self._price_properties(price),
+        )
 
     def _build_filter(
         self,

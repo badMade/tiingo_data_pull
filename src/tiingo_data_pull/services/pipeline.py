@@ -53,7 +53,7 @@ class TiingoToNotionPipeline:
         self._config = config or PipelineConfig()
         self._log = logger or logging.getLogger(__name__)
 
-    def sync(
+    async def sync(
         self,
         tickers: Iterable[str],
         *,
@@ -90,7 +90,7 @@ class TiingoToNotionPipeline:
                 for ticker, prices in filtered.items():
                     if prices:
                         try:
-                            created = self._notion_client.create_price_rows(prices)
+                            created = await self._notion_client.create_price_rows(prices)
                         except Exception:  # pragma: no cover - defensive logging
                             self._log.exception("Failed to persist Notion rows for %s", ticker)
                             raise
