@@ -1,4 +1,6 @@
 name: SonarCloud Scan
+permissions:
+  contents: read
 
 on:
   push:
