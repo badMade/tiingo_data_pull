@@ -1,6 +1,7 @@
 """Pipeline orchestrating Tiingo ingestion, Notion sync, and Drive export."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import date
@@ -80,7 +81,7 @@ class TiingoToNotionPipeline:
                 start_date=start_date,
                 end_date=end_date,
             )
-            filtered = await self._filter_new_prices(prices_by_ticker, start_date=start_date, end_date=end_date)
+            filtered = asyncio.run(self._filter_new_prices(prices_by_ticker, start_date=start_date, end_date=end_date))
             if not any(filtered.values()):
                 self._log.info("No new rows detected for batch; skipping writes")
                 continue
@@ -117,8 +118,9 @@ class TiingoToNotionPipeline:
     ) -> MutableMapping[str, List[PriceBar]]:
         filtered: MutableMapping[str, List[PriceBar]] = {}
 
-        for ticker, prices in prices_by_ticker.items():
-            existing_dates = await self._notion_client.query_existing_dates(
+        async def query_and_filter(ticker: str, prices: List[PriceBar]) -> tuple[str, List[PriceBar]]:
+            existing_dates = await asyncio.to_thread(
+                self._notion_client.query_existing_dates,
                 ticker,
                 start_date=start_date,
                 end_date=end_date,
@@ -126,12 +128,18 @@ class TiingoToNotionPipeline:
             new_prices = [
                 price for price in prices if price.date.isoformat() not in existing_dates
             ]
-            filtered[ticker] = new_prices
             self._log.debug(
                 "Ticker %s has %s new rows out of %s fetched",
                 ticker,
                 len(new_prices),
                 len(prices),
             )
+            return ticker, new_prices
+
+        tasks = [query_and_filter(ticker, prices) for ticker, prices in prices_by_ticker.items()]
+        results = await asyncio.gather(*tasks)
+
+        for ticker, new_prices in results:
+            filtered[ticker] = new_prices
 
         return filtered
