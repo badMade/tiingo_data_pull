@@ -1,6 +1,7 @@
 """Client utilities for interacting with the Notion API."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
@@ -40,6 +41,7 @@ class NotionClient:
         timeout: int = 30,
         page_size: int = 50,
         max_pages: int = 4,
+        max_workers: int = 10,
     ) -> None:
         """Initialise the Notion client.
 
@@ -51,6 +53,7 @@ class NotionClient:
             timeout: Request timeout in seconds.
             page_size: Number of rows to request per query (max 100).
             max_pages: Maximum pagination depth to stay within free tier quotas.
+            max_workers: Maximum concurrent workers for parallel API requests.
         """
 
         self._api_key = api_key
@@ -60,6 +63,7 @@ class NotionClient:
         self._timeout = timeout
         self._page_size = min(max(page_size, 1), 100)
         self._max_pages = max_pages
+        self._max_workers = max(max_workers, 1)
 
     @property
     def _headers(self) -> Dict[str, str]:
@@ -131,8 +135,11 @@ class NotionClient:
             List of created page identifiers.
         """
 
-        created_ids: List[str] = []
-        for price in prices:
+        if not prices:
+            return []
+
+        def _create_single_page(price: PriceBar) -> str:
+            """Create a single page and return its ID."""
             payload = self._price_to_page_payload(price)
             response = self._session.post(
                 f"{self.base_url}/pages",
@@ -141,7 +148,20 @@ class NotionClient:
                 timeout=self._timeout,
             )
             response.raise_for_status()
-            created_ids.append(response.json().get("id", ""))
+            return response.json().get("id", "")
+
+        created_ids: List[str] = []
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+            # Submit all tasks
+            future_to_price = {
+                executor.submit(_create_single_page, price): price 
+                for price in prices
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_price):
+                created_ids.append(future.result())
+        
         return created_ids
 
     def _build_filter(
@@ -153,7 +173,7 @@ class NotionClient:
         filters: List[Dict[str, object]] = [
             {
                 "property": self._properties.ticker_property,
-                "rich_text": {"equals": ticker},
+                "title": {"equals": ticker},
             }
         ]
         if start_date:

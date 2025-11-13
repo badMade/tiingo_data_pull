@@ -39,7 +39,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=int(os.getenv("TIINGO_BATCH_SIZE", 10)),
+        default=_parse_int_env("TIINGO_BATCH_SIZE", 10),
         help="Number of tickers to process per batch (default: 10).",
     )
     parser.add_argument(
@@ -127,6 +127,19 @@ def _load_tickers(path: Path) -> List[str]:
 
 def _parse_date(value: str) -> date:
     return date.fromisoformat(value)
+
+
+def _parse_int_env(key: str, default: int) -> int:
+    """Parse an integer from an environment variable with graceful error handling."""
+    value = os.getenv(key)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Environment variable {key} must be a valid integer, got: {value!r}"
+        ) from exc
 
 
 def _require_env(key: str) -> str:

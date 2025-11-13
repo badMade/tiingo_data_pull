@@ -76,13 +76,15 @@ class TiingoClient:
         *,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        max_workers: int = 10,
     ) -> dict[str, List[PriceBar]]:
-        """Fetch price history for multiple tickers.
+        """Fetch price history for multiple tickers concurrently.
 
         Args:
             tickers: Iterable of ticker symbols to fetch.
             start_date: Optional start date (inclusive).
             end_date: Optional end date (inclusive).
+            max_workers: Maximum number of concurrent requests (default: 10).
 
         Returns:
             Mapping of ticker symbol to list of :class:`PriceBar` objects.
