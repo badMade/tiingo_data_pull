@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiingo_data_pull"
+version = "0.1.0"
+description = "Pipeline to sync Tiingo market data with Notion and Google Drive"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "badMade"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests==2.32.5",
+    "google-api-python-client==2.187.0",
+    "google-auth==2.43.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/badMade/tiingo_data_pull"
+
+[project.scripts]
+tiingo-data-pull = "tiingo_data_pull.cli:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
