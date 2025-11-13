@@ -8,11 +8,9 @@ from datetime import date
 from pathlib import Path
 from typing import Iterable, List, Mapping, MutableMapping, Optional
 
-from ..clients.notion_client import NotionClient
-from ..clients.drive_client import GoogleDriveClient
-from ..integrations.notion_client import NotionClient
 from ..clients.tiingo_client import TiingoClient
 from ..integrations.google_drive import upload_json
+from ..integrations.notion_client import NotionClient
 from ..models import PriceBar
 from ..utils.batching import chunked
 from ..utils.file_io import write_prices_by_ticker
@@ -81,7 +79,7 @@ class TiingoToNotionPipeline:
                 start_date=start_date,
                 end_date=end_date,
             )
-            filtered = asyncio.run(self._filter_new_prices(prices_by_ticker, start_date=start_date, end_date=end_date))
+            filtered = await self._filter_new_prices(prices_by_ticker, start_date=start_date, end_date=end_date)
             if not any(filtered.values()):
                 self._log.info("No new rows detected for batch; skipping writes")
                 continue
@@ -118,7 +116,7 @@ class TiingoToNotionPipeline:
             )
         upload_json(json_path, drive_folder_id)
 
-    def _filter_new_prices(
+    async def _filter_new_prices(
         self,
         prices_by_ticker: Mapping[str, List[PriceBar]],
         *,
@@ -128,8 +126,7 @@ class TiingoToNotionPipeline:
         filtered: MutableMapping[str, List[PriceBar]] = {}
 
         async def query_and_filter(ticker: str, prices: List[PriceBar]) -> tuple[str, List[PriceBar]]:
-            existing_dates = await asyncio.to_thread(
-                self._notion_client.query_existing_dates,
+            existing_dates = await self._notion_client.query_existing_dates(
                 ticker,
                 start_date=start_date,
                 end_date=end_date,
