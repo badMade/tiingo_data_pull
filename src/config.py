@@ -31,8 +31,8 @@ def load_settings(**overrides: Any) -> Settings:
 
     env_values: MutableMapping[str, Any] = {
         "api_key": os.getenv("TIINGO_API_KEY", ""),
-        "tickers_file": Path(os.getenv("TIINGO_TICKERS_FILE", _DEFAULTS.tickers_file)),
-        "output_dir": Path(os.getenv("TIINGO_OUTPUT_DIR", _DEFAULTS.output_dir)),
+        "tickers_file": Path(os.getenv("TIINGO_TICKERS_FILE", str(_DEFAULTS.tickers_file))),
+        "output_dir": Path(os.getenv("TIINGO_OUTPUT_DIR", str(_DEFAULTS.output_dir))),
         "batch_size": _parse_int(os.getenv("TIINGO_BATCH_SIZE"), _DEFAULTS.batch_size),
         "max_retries": _parse_int(os.getenv("TIINGO_MAX_RETRIES"), _DEFAULTS.max_retries),
         "backoff_seconds": _parse_float(
