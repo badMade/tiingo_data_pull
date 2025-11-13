@@ -87,8 +87,9 @@ def load_notion_config(
     default_mapping = NotionPropertyMapping()
     mapping_kwargs: MutableMapping[str, str] = {
         field.name: str(
-            properties_section.get(field.name)
-            or env.get(f"NOTION_{field.name.upper()}_PROPERTY", getattr(default_mapping, field.name))
+            env.get(f"NOTION_{field.name.upper()}_PROPERTY")
+            or properties_section.get(field.name)
+            or getattr(default_mapping, field.name)
         )
         for field in fields(NotionPropertyMapping)
     }
@@ -116,6 +117,9 @@ def _read_config_value(
     env_value = env.get(env_key)
     if env_value:
         return env_value
+    value = file_data.get(key)
+    if isinstance(value, str) and value:
+        return value
     return None
 
 
