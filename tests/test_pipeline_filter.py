@@ -1,7 +1,6 @@
 """Tests for pipeline filtering logic."""
 from __future__ import annotations
 
-import asyncio
 from datetime import date
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -40,11 +39,6 @@ class StubNotionClient:
         raise AssertionError("Not expected in filtering test")
 
 
-class StubDriveClient:
-    def upload_json(self, file_path: str) -> Dict[str, str]:
-        raise AssertionError("Not expected in filtering test")
-
-
 @pytest.fixture
 def existing_dates() -> Dict[str, Sequence[str]]:
     return {"AAPL": ["2024-01-01"]}
@@ -55,8 +49,7 @@ def pipeline(existing_dates: Dict[str, Sequence[str]]) -> TiingoToNotionPipeline
     return TiingoToNotionPipeline(
         StubTiingoClient(),
         StubNotionClient(existing_dates),
-        StubDriveClient(),
-        config=PipelineConfig(batch_size=5, output_directory="/tmp"),
+        config=PipelineConfig(batch_size=5, output_directory="/tmp", drive_folder_id="dummy"),
     )
 
 
@@ -80,11 +73,11 @@ async def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeli
             make_price("AAPL", date(2024, 1, 2)),
         ]
     }
-    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = await pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    ))
+    )
     assert [price.date for price in filtered["AAPL"]] == [date(2024, 1, 2)]
 
 
@@ -93,17 +86,16 @@ async def test_filter_new_prices_handles_empty_existing() -> None:
     pipeline = TiingoToNotionPipeline(
         StubTiingoClient(),
         StubNotionClient({}),
-        StubDriveClient(),
-        config=PipelineConfig(batch_size=5, output_directory="/tmp"),
+        config=PipelineConfig(batch_size=5, output_directory="/tmp", drive_folder_id="dummy"),
     )
     prices = {
         "MSFT": [
             make_price("MSFT", date(2024, 2, 1)),
         ]
     }
-    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = await pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    ))
+    )
     assert len(filtered["MSFT"]) == 1
