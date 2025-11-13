@@ -1,71 +1,45 @@
-# Python cache
+# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environment
-.venv/
-venv/
-env/
-# pytest cache
-.pytest_cache/
-
-# Virtual environment
-.venv/
-venv/
-ENV/
-env/
-# Virtual environments
-venv/
-env/
-ENV/
 # Distribution / packaging
-dist/
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Testing
+# PyTest cache
 .pytest_cache/
-.coverage
-htmlcov/
 
-# Virtual environments
-venv/
+# Environments
+.env
+.venv
 env/
-.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
+*~
 
-# pytest
-.pytest_cache/
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Environment variables
-.env
 # OS
 .DS_Store
 Thumbs.db
-
-# Project-specific
-exports/
-*.json.bak
-# OS files
-.DS_Store
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
