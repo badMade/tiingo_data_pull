@@ -1,8 +1,9 @@
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -40,3 +41,12 @@ venv.bak/
 *.swp
 *.swo
 *~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+.env.local
