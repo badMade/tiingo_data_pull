@@ -8,6 +8,8 @@ from pathlib import Path
 import time
 from typing import Callable, Dict, Iterator, List, Sequence
 
+import requests
+
 from config import Settings, load_settings
 from tiingo_client import fetch_prices
 
@@ -101,17 +103,22 @@ def run_from_env(start: date, end: date) -> List[Path]:
 
     settings = load_settings()
     config = PipelineConfig.from_settings(settings)
+    session = requests.Session()
 
-    def _fetch(ticker: str, start_date: date, end_date: date) -> PriceList:
-        return fetch_prices(
-            ticker,
-            start_date,
-            end_date,
-            api_key=settings.api_key,
-        )
+    try:
+        def _fetch(ticker: str, start_date: date, end_date: date) -> PriceList:
+            return fetch_prices(
+                ticker,
+                start_date,
+                end_date,
+                api_key=settings.api_key,
+                session=session,
+            )
 
-    pipeline = BatchPipeline(_fetch, config)
-    return pipeline.run(start, end)
+        pipeline = BatchPipeline(_fetch, config)
+        return pipeline.run(start, end)
+    finally:
+        session.close()
 
 
 __all__ = [
