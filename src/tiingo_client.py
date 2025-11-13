@@ -42,15 +42,16 @@ def fetch_prices(
         raise RuntimeError("TIINGO_API_KEY must be set before calling fetch_prices().")
 
     payload = {
-        "token": token,
         "startDate": start.isoformat(),
         "endDate": end.isoformat(),
     }
+    headers = {"Authorization": f"Token {token}"}
 
     http = session or requests.Session()
     response = http.get(
         f"{API_BASE_URL}/{ticker}/prices",
         params=payload,
+        headers=headers,
         timeout=timeout,
     )
 
