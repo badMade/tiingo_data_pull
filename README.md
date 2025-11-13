@@ -56,6 +56,31 @@ Set the following environment variables before running the pipeline:
    python -m tiingo_data_pull.cli --tickers all_tickers.json --dry-run
    ```
 
+### Lightweight JSON export pipeline
+For teams that only need to download Tiingo prices and write them to disk, the repository now
+includes a minimal batch pipeline driven by the new `pipeline.py` and `tiingo_client.py`
+modules under `src/`.
+
+1. Create a `.env` file (or export environment variables) with at least:
+   ```env
+   TIINGO_API_KEY=your-tiingo-token
+   TIINGO_TICKERS_FILE=all_tickers.json  # optional override
+   TIINGO_OUTPUT_DIR=data                # optional override
+   TIINGO_BATCH_SIZE=8                   # tuned to Tiingo free-tier limits
+   TIINGO_MAX_RETRIES=3
+   TIINGO_BACKOFF_SECONDS=1.0
+   ```
+2. Run the pipeline from a Python shell:
+   ```python
+   from datetime import date
+   from pipeline import run_from_env
+
+   run_from_env(date(2024, 1, 1), date(2024, 1, 31))
+   ```
+3. The script reads tickers from `all_tickers.json`, issues sequential API calls with retry and
+   exponential backoff, aggregates results into a `dict[ticker, list[price]]`, and writes a JSON
+   file per batch (e.g., `data/prices_batch_001.json`).
+
 ## File Structure
 ```
 .
