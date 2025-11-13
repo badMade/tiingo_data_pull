@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 import json
 from pathlib import Path
+import requests
 import time
 from typing import Callable, Dict, Iterator, List, Sequence
 
@@ -102,16 +103,19 @@ def run_from_env(start: date, end: date) -> List[Path]:
     settings = load_settings()
     config = PipelineConfig.from_settings(settings)
 
-    def _fetch(ticker: str, start_date: date, end_date: date) -> PriceList:
-        return fetch_prices(
-            ticker,
-            start_date,
-            end_date,
-            api_key=settings.api_key,
-        )
+    with requests.Session() as session:
 
-    pipeline = BatchPipeline(_fetch, config)
-    return pipeline.run(start, end)
+        def _fetch(ticker: str, start_date: date, end_date: date) -> PriceList:
+            return fetch_prices(
+                ticker,
+                start_date,
+                end_date,
+                api_key=settings.api_key,
+                session=session,
+            )
+
+        pipeline = BatchPipeline(_fetch, config)
+        return pipeline.run(start, end)
 
 
 __all__ = [
