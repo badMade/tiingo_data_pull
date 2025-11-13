@@ -1,6 +1,7 @@
 """Tests for pipeline filtering logic."""
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -26,7 +27,7 @@ class StubNotionClient:
         self._existing_dates = existing_dates
         self.created: Dict[str, List[PriceBar]] = {}
 
-    def fetch_existing_dates(
+    async def query_existing_dates(
         self,
         ticker: str,
         *,
@@ -35,7 +36,7 @@ class StubNotionClient:
     ) -> set[str]:
         return set(self._existing_dates.get(ticker, []))
 
-    def create_price_pages(self, prices: Sequence[PriceBar]) -> List[str]:
+    async def create_price_rows(self, prices: Sequence[PriceBar]) -> List[str]:
         raise AssertionError("Not expected in filtering test")
 
 
@@ -65,22 +66,24 @@ def make_price(ticker: str, day: date) -> PriceBar:
     )
 
 
-def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeline) -> None:
+@pytest.mark.anyio
+async def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeline) -> None:
     prices = {
         "AAPL": [
             make_price("AAPL", date(2024, 1, 1)),
             make_price("AAPL", date(2024, 1, 2)),
         ]
     }
-    filtered = pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    )
+    ))
     assert [price.date for price in filtered["AAPL"]] == [date(2024, 1, 2)]
 
 
-def test_filter_new_prices_handles_empty_existing() -> None:
+@pytest.mark.anyio
+async def test_filter_new_prices_handles_empty_existing() -> None:
     pipeline = TiingoToNotionPipeline(
         StubTiingoClient(),
         StubNotionClient({}),
@@ -91,9 +94,9 @@ def test_filter_new_prices_handles_empty_existing() -> None:
             make_price("MSFT", date(2024, 2, 1)),
         ]
     }
-    filtered = pipeline._filter_new_prices(  # noqa: SLF001
+    filtered = asyncio.run(pipeline._filter_new_prices(  # noqa: SLF001
         prices,
         start_date=None,
         end_date=None,
-    )
+    ))
     assert len(filtered["MSFT"]) == 1

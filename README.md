@@ -40,6 +40,26 @@ Set the following environment variables before running the pipeline:
 | `TIINGO_JSON_PREFIX` | *(Optional)* Prefix for JSON export filenames. |
 | `NOTION_TICKER_PROPERTY` | *(Optional)* Override Notion ticker property name. |
 | `NOTION_DATE_PROPERTY` | *(Optional)* Override Notion date property name. |
+| `NOTION_<FIELD>_PROPERTY` | *(Optional)* Override any other Notion number property (Close/Open/High/Low/Volume/Adj_Close). |
+
+The CLI also accepts `--notion-config /path/to/config.json` to load the database ID and
+property mappings from a JSON document. The file may include optional overrides:
+
+```json
+{
+  "api_key": "${NOTION_API_KEY}",
+  "database_id": "<database-id>",
+  "properties": {
+    "ticker": "Ticker",
+    "date": "Date",
+    "close": "Close"
+  }
+}
+```
+
+Environment variables always take precedence over values from the config file, and
+individual CLI flags such as `--notion-ticker-property` or `--notion-date-property`
+override both to simplify experimentation.
 
 ### Google Drive OAuth Setup
 1. Create an OAuth **Desktop App** credential in Google Cloud Console and download the client secrets JSON file.
@@ -64,6 +84,31 @@ Set the following environment variables before running the pipeline:
    ```bash
    python -m tiingo_data_pull.cli --tickers all_tickers.json --dry-run
    ```
+
+### Lightweight JSON export pipeline
+For teams that only need to download Tiingo prices and write them to disk, the repository now
+includes a minimal batch pipeline driven by the new `pipeline.py` and `tiingo_client.py`
+modules under `src/`.
+
+1. Create a `.env` file (or export environment variables) with at least:
+   ```env
+   TIINGO_API_KEY=your-tiingo-token
+   TIINGO_TICKERS_FILE=all_tickers.json  # optional override
+   TIINGO_OUTPUT_DIR=data                # optional override
+   TIINGO_BATCH_SIZE=8                   # tuned to Tiingo free-tier limits
+   TIINGO_MAX_RETRIES=3
+   TIINGO_BACKOFF_SECONDS=1.0
+   ```
+2. Run the pipeline from a Python shell:
+   ```python
+   from datetime import date
+   from pipeline import run_from_env
+
+   run_from_env(date(2024, 1, 1), date(2024, 1, 31))
+   ```
+3. The script reads tickers from `all_tickers.json`, issues sequential API calls with retry and
+   exponential backoff, aggregates results into a `dict[ticker, list[price]]`, and writes a JSON
+   file per batch (e.g., `data/prices_batch_001.json`).
 
 ## File Structure
 ```

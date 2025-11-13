@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 from datetime import date
@@ -9,7 +10,9 @@ from pathlib import Path
 from typing import List, Optional
 
 from .clients.notion_client import NotionClient, NotionPropertyConfig
+from .clients.drive_client import GoogleDriveClient
 from .clients.tiingo_client import TiingoClient
+from .integrations.notion_client import NotionClient, load_notion_config
 from .services.pipeline import PipelineConfig, TiingoToNotionPipeline
 
 
@@ -63,6 +66,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Name of the Notion date property used for the trading day.",
     )
     parser.add_argument(
+        "--notion-config",
+        type=Path,
+        default=None,
+        help=(
+            "Optional path to a JSON file containing the Notion database ID and property mappings."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="If supplied, fetch data and write JSON but skip Notion/Drive updates.",
@@ -79,13 +90,18 @@ def run(argv: Optional[List[str]] = None) -> None:
     tiingo_api_key = _require_env("TIINGO_API_KEY")
     notion_api_key = _require_env("NOTION_API_KEY")
     notion_database_id = _require_env("NOTION_DATABASE_ID")
+    service_account_file = _require_env("GOOGLE_SERVICE_ACCOUNT_FILE")
     drive_folder_id = _require_env("GOOGLE_DRIVE_FOLDER_ID")
     if not args.dry_run:
         _require_env("GOOGLE_OAUTH_CLIENT_SECRETS_FILE")
 
-    property_config = NotionPropertyConfig(
-        ticker_property=args.notion_ticker_property,
-        date_property=args.notion_date_property,
+    notion_config = load_notion_config(
+        config_path=args.notion_config,
+        env=os.environ,
+        property_overrides={
+            "ticker": args.notion_ticker_property,
+            "date": args.notion_date_property,
+        },
     )
 
     tiingo_client = TiingoClient(tiingo_api_key)
@@ -105,11 +121,13 @@ def run(argv: Optional[List[str]] = None) -> None:
         ),
     )
 
-    pipeline.sync(
-        tickers,
-        start_date=args.start_date,
-        end_date=args.end_date,
-        dry_run=args.dry_run,
+    asyncio.run(
+        pipeline.sync(
+            tickers,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            dry_run=args.dry_run,
+        )
     )
 
 
