@@ -53,7 +53,7 @@ class NotionClient:
             timeout: Request timeout in seconds.
             page_size: Number of rows to request per query (max 100).
             max_pages: Maximum pagination depth to stay within free tier quotas.
-            max_workers: Maximum number of concurrent threads for page creation.
+            max_workers: Maximum concurrent workers for parallel API requests.
         """
 
         self._api_key = api_key
@@ -139,7 +139,7 @@ class NotionClient:
             return []
 
         def _create_single_page(price: PriceBar) -> str:
-            """Helper to create a single page and return its ID."""
+            """Create a single page and return its ID."""
             payload = self._price_to_page_payload(price)
             response = self._session.post(
                 f"{self.base_url}/pages",
@@ -153,20 +153,15 @@ class NotionClient:
         created_ids: List[str] = []
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             # Submit all tasks
-            future_to_price = {executor.submit(_create_single_page, price): price for price in prices}
+            future_to_price = {
+                executor.submit(_create_single_page, price): price 
+                for price in prices
+            }
             
             # Collect results as they complete
             for future in as_completed(future_to_price):
-                try:
-                    page_id = future.result()
-                    created_ids.append(page_id)
-                except Exception as exc:
-                    price = future_to_price[future]
-                    # Re-raise with context about which price failed
-                    raise RuntimeError(
-                        f"Failed to create page for {price.ticker} on {price.date.isoformat()}"
-                    ) from exc
-
+                created_ids.append(future.result())
+        
         return created_ids
 
     def _build_filter(

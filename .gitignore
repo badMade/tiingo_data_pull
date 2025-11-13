@@ -1,9 +1,8 @@
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Distribution / packaging
+*.so
 .Python
 build/
 develop-eggs/
