@@ -173,7 +173,7 @@ class NotionClient:
         filters: List[Dict[str, object]] = [
             {
                 "property": self._properties.ticker_property,
-                "rich_text": {"equals": ticker},
+                "title": {"equals": ticker},
             }
         ]
         if start_date:

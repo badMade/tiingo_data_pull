@@ -6,13 +6,12 @@ import json
 import os
 from datetime import date
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
 from .clients.drive_client import GoogleDriveClient
 from .clients.notion_client import NotionClient, NotionPropertyConfig
 from .clients.tiingo_client import TiingoClient
 from .services.pipeline import PipelineConfig, TiingoToNotionPipeline
-from .utils.batching import chunked
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -40,7 +39,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=int(os.getenv("TIINGO_BATCH_SIZE", 10)),
+        default=_parse_int_env("TIINGO_BATCH_SIZE", 10),
         help="Number of tickers to process per batch (default: 10).",
     )
     parser.add_argument(
@@ -110,31 +109,12 @@ def run(argv: Optional[List[str]] = None) -> None:
         ),
     )
 
-    if args.dry_run:
-        _dry_run(pipeline, tickers, args.start_date, args.end_date)
-    else:
-        pipeline.sync(
-            tickers,
-            start_date=args.start_date,
-            end_date=args.end_date,
-        )
-
-
-def _dry_run(
-    pipeline: TiingoToNotionPipeline,
-    tickers: Iterable[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
-) -> None:
-    """Execute the pipeline without side effects for validation."""
-
-    for batch in chunked(tickers, pipeline._config.batch_size):  # noqa: SLF001
-        prices_by_ticker = pipeline._tiingo_client.fetch_price_history_bulk(  # noqa: SLF001
-            batch,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        pipeline._filter_new_prices(prices_by_ticker, start_date=start_date, end_date=end_date)  # noqa: SLF001
+    pipeline.sync(
+        tickers,
+        start_date=args.start_date,
+        end_date=args.end_date,
+        dry_run=args.dry_run,
+    )
 
 
 def _load_tickers(path: Path) -> List[str]:
@@ -147,6 +127,19 @@ def _load_tickers(path: Path) -> List[str]:
 
 def _parse_date(value: str) -> date:
     return date.fromisoformat(value)
+
+
+def _parse_int_env(key: str, default: int) -> int:
+    """Parse an integer from an environment variable with graceful error handling."""
+    value = os.getenv(key)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Environment variable {key} must be a valid integer, got: {value!r}"
+        ) from exc
 
 
 def _require_env(key: str) -> str:

@@ -20,8 +20,10 @@ wheels/
 .installed.cfg
 *.egg
 
-# PyTest
+# Testing
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Environments
 .env
@@ -32,10 +34,18 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+.env.local
