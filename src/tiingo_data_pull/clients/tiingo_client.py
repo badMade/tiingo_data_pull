@@ -93,8 +93,7 @@ class TiingoClient:
         tickers_list = list(tickers)
         results: dict[str, List[PriceBar]] = {}
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
+        with ThreadPoolExecutor(max_workers=10) as executor:
             future_to_ticker = {
                 executor.submit(
                     self.fetch_price_history,
@@ -105,13 +104,8 @@ class TiingoClient:
                 for ticker in tickers_list
             }
             
-            # Collect results as they complete
             for future in as_completed(future_to_ticker):
                 ticker = future_to_ticker[future]
-                try:
-                    results[ticker] = future.result()
-                except Exception as exc:
-                    # Re-raise the exception to maintain existing error behavior
-                    raise exc
+                results[ticker] = future.result()
         
         return results
