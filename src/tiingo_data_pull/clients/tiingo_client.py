@@ -78,8 +78,6 @@ class TiingoClient:
                 session = self._clone_session()
             else:
                 session = factory()
-            if session is None:
-                session = requests.Session()
             self._thread_local.session = session
         return session
 
