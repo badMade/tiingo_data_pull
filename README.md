@@ -38,6 +38,26 @@ Set the following environment variables before running the pipeline:
 | `TIINGO_JSON_PREFIX` | *(Optional)* Prefix for JSON export filenames. |
 | `NOTION_TICKER_PROPERTY` | *(Optional)* Override Notion ticker property name. |
 | `NOTION_DATE_PROPERTY` | *(Optional)* Override Notion date property name. |
+| `NOTION_<FIELD>_PROPERTY` | *(Optional)* Override any other Notion number property (Close/Open/High/Low/Volume/Adj_Close). |
+
+The CLI also accepts `--notion-config /path/to/config.json` to load the database ID and
+property mappings from a JSON document. The file may include optional overrides:
+
+```json
+{
+  "api_key": "${NOTION_API_KEY}",
+  "database_id": "<database-id>",
+  "properties": {
+    "ticker": "Ticker",
+    "date": "Date",
+    "close": "Close"
+  }
+}
+```
+
+Environment variables always take precedence over values from the config file, and
+individual CLI flags such as `--notion-ticker-property` or `--notion-date-property`
+override both to simplify experimentation.
 
 ## Usage
 1. Prepare a JSON file containing an array of tickers, for example `all_tickers.json`.
@@ -66,8 +86,10 @@ Set the following environment variables before running the pipeline:
 │       ├── cli.py             # Command-line interface
 │       ├── clients/
 │       │   ├── drive_client.py
-│       │   ├── notion_client.py
+│       │   ├── notion_client.py  # Compatibility shim for integration exports
 │       │   └── tiingo_client.py
+│       ├── integrations/
+│       │   └── notion_client.py
 │       ├── models/
 │       │   └── price_bar.py
 │       ├── services/

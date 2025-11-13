@@ -26,7 +26,7 @@ class StubNotionClient:
         self._existing_dates = existing_dates
         self.created: Dict[str, List[PriceBar]] = {}
 
-    def fetch_existing_dates(
+    def query_existing_dates(
         self,
         ticker: str,
         *,
@@ -35,7 +35,7 @@ class StubNotionClient:
     ) -> set[str]:
         return set(self._existing_dates.get(ticker, []))
 
-    def create_price_pages(self, prices: Sequence[PriceBar]) -> List[str]:
+    def create_price_rows(self, prices: Sequence[PriceBar]) -> List[str]:
         raise AssertionError("Not expected in filtering test")
 
 
