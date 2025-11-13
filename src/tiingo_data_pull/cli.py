@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 from datetime import date
@@ -115,11 +116,13 @@ def run(argv: Optional[List[str]] = None) -> None:
         ),
     )
 
-    pipeline.sync(
-        tickers,
-        start_date=args.start_date,
-        end_date=args.end_date,
-        dry_run=args.dry_run,
+    asyncio.run(
+        pipeline.sync(
+            tickers,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            dry_run=args.dry_run,
+        )
     )
 
 
