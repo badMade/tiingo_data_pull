@@ -7,9 +7,9 @@ from datetime import date
 from pathlib import Path
 from typing import Iterable, List, Mapping, MutableMapping, Optional
 
-from ..clients.drive_client import GoogleDriveClient
 from ..clients.notion_client import NotionClient
 from ..clients.tiingo_client import TiingoClient
+from ..integrations.google_drive import upload_json
 from ..models import PriceBar
 from ..utils.batching import chunked
 from ..utils.file_io import write_prices_by_ticker
@@ -22,6 +22,7 @@ class PipelineConfig:
     batch_size: int = 10
     output_directory: str = "exports"
     json_prefix: str = "tiingo_prices"
+    drive_folder_id: Optional[str] = None
 
 
 class TiingoToNotionPipeline:
@@ -31,7 +32,6 @@ class TiingoToNotionPipeline:
         self,
         tiingo_client: TiingoClient,
         notion_client: NotionClient,
-        drive_client: GoogleDriveClient,
         *,
         config: Optional[PipelineConfig] = None,
     ) -> None:
@@ -40,13 +40,11 @@ class TiingoToNotionPipeline:
         Args:
             tiingo_client: Client for retrieving Tiingo data.
             notion_client: Client for reading/writing Notion pages.
-            drive_client: Client for uploading JSON exports to Drive.
             config: Optional runtime configuration values.
         """
 
         self._tiingo_client = tiingo_client
         self._notion_client = notion_client
-        self._drive_client = drive_client
         self._config = config or PipelineConfig()
 
     def sync(
@@ -91,9 +89,19 @@ class TiingoToNotionPipeline:
                 prefix=self._config.json_prefix,
             )
             if not dry_run:
-                self._drive_client.upload_json(str(json_path))
+                self._upload_to_drive(json_path)
             uploaded_files.append(json_path)
         return uploaded_files
+
+    def _upload_to_drive(self, json_path: Path) -> None:
+        """Upload an export to Google Drive if a folder is configured."""
+
+        drive_folder_id = self._config.drive_folder_id
+        if not drive_folder_id:
+            raise RuntimeError(
+                "Drive folder identifier is required for uploads. Set it in PipelineConfig."
+            )
+        upload_json(json_path, drive_folder_id)
 
     def _filter_new_prices(
         self,

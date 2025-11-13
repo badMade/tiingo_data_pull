@@ -39,11 +39,6 @@ class StubNotionClient:
         raise AssertionError("Not expected in filtering test")
 
 
-class StubDriveClient:
-    def upload_json(self, file_path: str) -> Dict[str, str]:
-        raise AssertionError("Not expected in filtering test")
-
-
 @pytest.fixture
 def existing_dates() -> Dict[str, Sequence[str]]:
     return {"AAPL": ["2024-01-01"]}
@@ -54,8 +49,7 @@ def pipeline(existing_dates: Dict[str, Sequence[str]]) -> TiingoToNotionPipeline
     return TiingoToNotionPipeline(
         StubTiingoClient(),
         StubNotionClient(existing_dates),
-        StubDriveClient(),
-        config=PipelineConfig(batch_size=5, output_directory="/tmp"),
+        config=PipelineConfig(batch_size=5, output_directory="/tmp", drive_folder_id="dummy"),
     )
 
 
@@ -90,8 +84,7 @@ def test_filter_new_prices_handles_empty_existing() -> None:
     pipeline = TiingoToNotionPipeline(
         StubTiingoClient(),
         StubNotionClient({}),
-        StubDriveClient(),
-        config=PipelineConfig(batch_size=5, output_directory="/tmp"),
+        config=PipelineConfig(batch_size=5, output_directory="/tmp", drive_folder_id="dummy"),
     )
     prices = {
         "MSFT": [

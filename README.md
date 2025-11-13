@@ -22,6 +22,7 @@ This project automates the process of collecting historical market data from the
    pip install -e .
    ```
    This will install all dependencies and make the `tiingo_data_pull` package importable.
+3. Key dependencies include `requests`, `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` for OAuth-enabled Drive uploads.
 
 ## Configuration
 Set the following environment variables before running the pipeline:
@@ -31,13 +32,21 @@ Set the following environment variables before running the pipeline:
 | `TIINGO_API_KEY` | Tiingo API token. |
 | `NOTION_API_KEY` | Notion integration secret. |
 | `NOTION_DATABASE_ID` | Target Notion database ID. |
-| `GOOGLE_SERVICE_ACCOUNT_FILE` | Path to the Google service account JSON credentials. |
 | `GOOGLE_DRIVE_FOLDER_ID` | Google Drive folder ID for uploads. |
+| `GOOGLE_OAUTH_CLIENT_SECRETS_FILE` | Path to the Google OAuth client secrets JSON downloaded from Google Cloud (store outside the repo). |
+| `GOOGLE_OAUTH_TOKEN_FILE` | *(Optional)* Path for persisting the OAuth refresh token. Defaults to `~/.config/tiingo-data-pull/google-drive-token.json`. |
 | `TIINGO_BATCH_SIZE` | *(Optional)* Override batch size for processing tickers. |
 | `TIINGO_EXPORT_DIR` | *(Optional)* Directory for generated JSON files. |
 | `TIINGO_JSON_PREFIX` | *(Optional)* Prefix for JSON export filenames. |
 | `NOTION_TICKER_PROPERTY` | *(Optional)* Override Notion ticker property name. |
 | `NOTION_DATE_PROPERTY` | *(Optional)* Override Notion date property name. |
+
+### Google Drive OAuth Setup
+1. Create an OAuth **Desktop App** credential in Google Cloud Console and download the client secrets JSON file.
+2. Store the JSON outside of this repository (for example `~/secrets/tiingo-drive/client_secret.json`) and export `GOOGLE_OAUTH_CLIENT_SECRETS_FILE` to that path.
+3. Optionally export `GOOGLE_OAUTH_TOKEN_FILE` to a secure writable location; otherwise the helper defaults to `~/.config/tiingo-data-pull/google-drive-token.json`.
+4. On the first CLI run the uploader launches a browser window. Authorise the app for the `https://www.googleapis.com/auth/drive.file` scope. The resulting refresh token is written to the token file and automatically refreshed on subsequent runs.
+5. Ensure the configured Drive folder (`GOOGLE_DRIVE_FOLDER_ID`) is shared with the Google account used during OAuth.
 
 ## Usage
 1. Prepare a JSON file containing an array of tickers, for example `all_tickers.json`.
@@ -65,9 +74,10 @@ Set the following environment variables before running the pipeline:
 │   └── tiingo_data_pull/
 │       ├── cli.py             # Command-line interface
 │       ├── clients/
-│       │   ├── drive_client.py
 │       │   ├── notion_client.py
 │       │   └── tiingo_client.py
+│       ├── integrations/
+│       │   └── google_drive.py
 │       ├── models/
 │       │   └── price_bar.py
 │       ├── services/
@@ -81,7 +91,7 @@ Set the following environment variables before running the pipeline:
 ```
 
 ## Troubleshooting
-- **401 Unauthorized**: Confirm your API keys and service account credentials are valid and accessible to the process.
+- **401 Unauthorized**: Confirm your API keys and OAuth client/token files are accessible, valid, and owned by an account that can access the configured Drive folder.
 - **Rate limiting**: Reduce `--batch-size` or increase delays between runs to stay within free tier quotas.
 - **Duplicate data**: Ensure the Notion ticker and date property names match your database schema so the filtering step can detect existing rows.
 
