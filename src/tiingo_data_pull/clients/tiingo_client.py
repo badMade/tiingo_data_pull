@@ -1,6 +1,7 @@
 """Client for retrieving market data from Tiingo."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from typing import Iterable, List, Optional
 
@@ -75,23 +76,42 @@ class TiingoClient:
         *,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        max_workers: int = 10,
     ) -> dict[str, List[PriceBar]]:
-        """Fetch price history for multiple tickers.
+        """Fetch price history for multiple tickers concurrently.
 
         Args:
             tickers: Iterable of ticker symbols to fetch.
             start_date: Optional start date (inclusive).
             end_date: Optional end date (inclusive).
+            max_workers: Maximum number of concurrent requests (default: 10).
 
         Returns:
             Mapping of ticker symbol to list of :class:`PriceBar` objects.
         """
 
+        tickers_list = list(tickers)
         results: dict[str, List[PriceBar]] = {}
-        for ticker in tickers:
-            results[ticker] = self.fetch_price_history(
-                ticker,
-                start_date=start_date,
-                end_date=end_date,
-            )
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_ticker = {
+                executor.submit(
+                    self.fetch_price_history,
+                    ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                ): ticker
+                for ticker in tickers_list
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                try:
+                    results[ticker] = future.result()
+                except Exception as exc:
+                    # Re-raise the exception to maintain existing error behavior
+                    raise exc
+        
         return results

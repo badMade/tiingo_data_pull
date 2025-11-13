@@ -4,6 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Optional, TYPE_CHECKING
 
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from googleapiclient.discovery import Resource
 
@@ -29,8 +33,6 @@ class GoogleDriveClient:
         """
 
         effective_scopes = scopes or ["https://www.googleapis.com/auth/drive.file"]
-        service_account = self._import_service_account()
-        build = self._import_build()
         credentials = service_account.Credentials.from_service_account_file(
             service_account_file,
             scopes=effective_scopes,
@@ -38,7 +40,7 @@ class GoogleDriveClient:
         self._service = build("drive", "v3", credentials=credentials, cache_discovery=False)
         self._folder_id = folder_id
         self._chunk_size = chunk_size
-        self._media_file_upload = self._import_media_file_upload()
+        self._media_file_upload = MediaFileUpload
 
     def upload_json(self, file_path: str) -> Dict[str, str]:
         """Upload a JSON file to Google Drive.
@@ -65,21 +67,3 @@ class GoogleDriveClient:
         )
         response = request.execute()
         return {"id": response.get("id", ""), "webViewLink": response.get("webViewLink", "")}
-
-    @staticmethod
-    def _import_service_account():
-        from google.oauth2 import service_account
-
-        return service_account
-
-    @staticmethod
-    def _import_build():
-        from googleapiclient.discovery import build
-
-        return build
-
-    @staticmethod
-    def _import_media_file_upload():
-        from googleapiclient.http import MediaFileUpload
-
-        return MediaFileUpload

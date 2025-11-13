@@ -28,7 +28,7 @@ def write_prices_by_ticker(
 
     output_directory = Path(output_dir)
     output_directory.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     path = output_directory / f"{prefix}_{timestamp}.json"
 
     serialisable: Dict[str, list[dict]] = {
