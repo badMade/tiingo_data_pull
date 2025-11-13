@@ -67,7 +67,7 @@ class BatchPipeline:
             except Exception:  # pragma: no cover - defensive logging
                 if attempt == self._config.max_retries:
                     raise
-                sleep_for = self._config.backoff_seconds * attempt
+                sleep_for = self._config.backoff_seconds * (2 ** (attempt - 1))
                 time.sleep(sleep_for)
         raise RuntimeError("Unreachable")
 
