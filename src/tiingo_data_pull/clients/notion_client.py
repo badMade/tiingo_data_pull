@@ -195,12 +195,11 @@ class NotionClient:
         new_session.cert = base.cert
         new_session.trust_env = base.trust_env
         new_session.max_redirects = base.max_redirects
-        new_session.params = base.params.copy() if base.params else {}
-        new_session.hooks = deepcopy(base.hooks)
-        new_session.stream = base.stream
-        # Copy adapters by remounting them from the base session
+        
+        # Preserve custom adapters for retries, connection pooling, etc.
         for prefix, adapter in base.adapters.items():
             new_session.mount(prefix, adapter)
+        
         return new_session
 
     def _build_filter(
