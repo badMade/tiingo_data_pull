@@ -144,6 +144,18 @@ class NotionClient:
             created_ids.append(response.json().get("id", ""))
         return created_ids
 
+    def clone_with_new_session(self) -> "NotionClient":
+        """Return a new :class:`NotionClient` with its own HTTP session."""
+
+        return NotionClient(
+            api_key=self._api_key,
+            database_id=self._database_id,
+            property_config=self._properties,
+            timeout=self._timeout,
+            page_size=self._page_size,
+            max_pages=self._max_pages,
+        )
+
     def _build_filter(
         self,
         ticker: str,
