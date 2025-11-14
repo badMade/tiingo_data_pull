@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
@@ -194,6 +195,12 @@ class NotionClient:
         new_session.cert = base.cert
         new_session.trust_env = base.trust_env
         new_session.max_redirects = base.max_redirects
+        new_session.params = base.params.copy() if base.params else {}
+        new_session.hooks = deepcopy(base.hooks)
+        new_session.stream = base.stream
+        # Copy adapters by remounting them from the base session
+        for prefix, adapter in base.adapters.items():
+            new_session.mount(prefix, adapter)
         return new_session
 
     def _build_filter(
