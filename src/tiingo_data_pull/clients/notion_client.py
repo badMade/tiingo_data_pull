@@ -189,7 +189,7 @@ class NotionClient:
         new_session.headers.update(base.headers)
         new_session.cookies = base.cookies.copy()
         new_session.auth = base.auth
-        new_session.proxies = base.proxies
+        new_session.proxies = base.proxies.copy()
         new_session.verify = base.verify
         new_session.cert = base.cert
         new_session.trust_env = base.trust_env
