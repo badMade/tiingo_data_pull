@@ -168,8 +168,9 @@ class NotionClient:
         session.max_redirects = source.max_redirects
         session.hooks = copy(source.hooks)
         session.params = copy(source.params)
-        session.stream = source.stream
-        session.adapters = source.adapters.copy()
+        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
+        for prefix, adapter in source.adapters.items():
+            session.mount(prefix, adapter)
         return session
 
     def _build_filter(
