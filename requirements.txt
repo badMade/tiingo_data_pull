@@ -5,3 +5,4 @@ google-auth-oauthlib==1.2.0
 notion-client==2.2.1
 pytest==9.0.0
 python-dotenv==1.0.1
+trio==0.27.0

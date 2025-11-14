@@ -133,3 +133,27 @@ class TestLoadNotionConfig:
         config = load_notion_config(config_path=config_file, env={})
         # os.path.expandvars keeps undefined variables as-is
         assert config.api_key == "${UNDEFINED_VAR}"
+
+    def test_non_string_api_key_raises_type_error(self, tmp_path):
+        """Test that non-string API key in config file raises TypeError."""
+        config_file = tmp_path / "notion-config.json"
+        config_data = {
+            "api_key": 12345,  # Integer instead of string
+            "database_id": "test-id",
+        }
+        config_file.write_text(json.dumps(config_data))
+
+        with pytest.raises(TypeError, match="Configuration value for 'api_key' must be a string, but found int"):
+            load_notion_config(config_path=config_file, env={})
+
+    def test_non_string_database_id_raises_type_error(self, tmp_path):
+        """Test that non-string database ID in config file raises TypeError."""
+        config_file = tmp_path / "notion-config.json"
+        config_data = {
+            "api_key": "test-api-key",
+            "database_id": True,  # Boolean instead of string
+        }
+        config_file.write_text(json.dumps(config_data))
+
+        with pytest.raises(TypeError, match="Configuration value for 'database_id' must be a string, but found bool"):
+            load_notion_config(config_path=config_file, env={})
