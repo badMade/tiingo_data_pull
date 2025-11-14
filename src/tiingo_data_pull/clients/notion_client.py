@@ -1,8 +1,10 @@
 """Client utilities for interacting with the Notion API."""
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass
 from datetime import date
+from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
@@ -56,7 +58,8 @@ class NotionClient:
         self._api_key = api_key
         self._database_id = database_id
         self._properties = property_config or NotionPropertyConfig()
-        self._session = session or requests.Session()
+        self._session_prototype = session or requests.Session()
+        self._thread_local_session = local()
         self._timeout = timeout
         self._page_size = min(max(page_size, 1), 100)
         self._max_pages = max_pages
@@ -100,7 +103,7 @@ class NotionClient:
             if cursor:
                 payload["start_cursor"] = cursor
 
-            response = self._session.post(
+            response = self._get_session().post(
                 f"{self.base_url}/databases/{self._database_id}/query",
                 headers=self._headers,
                 json=payload,
@@ -132,9 +135,10 @@ class NotionClient:
         """
 
         created_ids: List[str] = []
+        session = self._get_session()
         for price in prices:
             payload = self._price_to_page_payload(price)
-            response = self._session.post(
+            response = session.post(
                 f"{self.base_url}/pages",
                 headers=self._headers,
                 json=payload,
@@ -143,6 +147,31 @@ class NotionClient:
             response.raise_for_status()
             created_ids.append(response.json().get("id", ""))
         return created_ids
+
+    def _get_session(self) -> requests.Session:
+        session = getattr(self._thread_local_session, "session", None)
+        if session is None:
+            session = self._clone_session(self._session_prototype)
+            setattr(self._thread_local_session, "session", session)
+        return session
+
+    @staticmethod
+    def _clone_session(source: requests.Session) -> requests.Session:
+        session = requests.Session()
+        session.headers.update(source.headers)
+        session.auth = source.auth
+        session.cookies = source.cookies.copy()
+        session.proxies = source.proxies.copy()
+        session.verify = source.verify
+        session.cert = source.cert
+        session.trust_env = source.trust_env
+        session.max_redirects = source.max_redirects
+        session.hooks = copy(source.hooks)
+        session.params = copy(source.params)
+        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
+        for prefix, adapter in source.adapters.items():
+            session.mount(prefix, adapter)
+        return session
 
     def _build_filter(
         self,
