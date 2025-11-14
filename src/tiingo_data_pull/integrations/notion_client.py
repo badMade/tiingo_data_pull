@@ -113,8 +113,11 @@ def _read_config_value(
     env_key: str,
 ) -> Optional[str]:
     value = file_data.get(key)
-    if isinstance(value, str) and value:
-        return value
+    if isinstance(value, str):
+        if value:
+            return value
+    elif value is not None:
+        raise TypeError(f"Configuration value for '{key}' must be a string, but found {type(value).__name__}.")
     env_value = env.get(env_key)
     if env_value:
         return env_value
