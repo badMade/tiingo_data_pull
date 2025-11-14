@@ -1,6 +1,7 @@
 """Pipeline orchestrating Tiingo ingestion, Notion sync, and Drive export."""
 from __future__ import annotations
 
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
@@ -104,18 +105,24 @@ class TiingoToNotionPipeline:
     ) -> MutableMapping[str, List[PriceBar]]:
         filtered: MutableMapping[str, List[PriceBar]] = {}
         
+        # Thread-local storage for NotionClient instances
+        thread_local = threading.local()
+        
         def _fetch_dates_for_ticker(ticker: str) -> Tuple[str, Set[str]]:
-            isolated_client = self._notion_client.clone_with_new_session()
+            # Get or create a NotionClient for this thread
+            if not hasattr(thread_local, "notion_client"):
+                thread_local.notion_client = self._notion_client.clone_with_new_session()
+            
             return (
                 ticker,
-                isolated_client.fetch_existing_dates(
+                thread_local.notion_client.fetch_existing_dates(
                     ticker,
                     start_date=start_date,
                     end_date=end_date,
                 ),
             )
 
-        # Fetch existing dates concurrently for all tickers using isolated sessions
+        # Fetch existing dates concurrently for all tickers using thread-local clients
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(_fetch_dates_for_ticker, ticker) for ticker in prices_by_ticker.keys()]
 
