@@ -1,9 +1,11 @@
 # Tiingo Data Pull Pipeline
 
 ## Project Overview
+
 This project automates the process of collecting historical market data from the Tiingo API, synchronising the results with a Notion database, and exporting batched JSON snapshots to Google Drive. The pipeline keeps data organised by ticker and avoids inserting duplicate rows for date ranges already present in Notion, helping teams maintain a clean, up-to-date market data journal.
 
 ## Features
+
 - Retrieve Tiingo end-of-day price data for any list of tickers.
 - Batch requests to respect API free tier rate limits.
 - Skip Notion inserts when rows already exist for the selected ticker/date range.
@@ -12,19 +14,25 @@ This project automates the process of collecting historical market data from the
 - Optional dry-run mode for validating configuration without writing to Notion or Drive.
 
 ## Installation
+
 1. Create and activate a Python 3.11 virtual environment:
+
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
+
 2. Install the package in editable mode:
+
    ```bash
    pip install -e .
    ```
+
    This will install all dependencies and make the `tiingo_data_pull` package importable.
 3. Key dependencies include `requests`, `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` for OAuth-enabled Drive uploads.
 
 ## Configuration
+
 Set the following environment variables before running the pipeline:
 
 | Variable | Description |
@@ -62,6 +70,7 @@ individual CLI flags such as `--notion-ticker-property` or `--notion-date-proper
 override both to simplify experimentation.
 
 ### Google Drive OAuth Setup
+
 1. Create an OAuth **Desktop App** credential in Google Cloud Console and download the client secrets JSON file.
 2. Store the JSON outside of this repository (for example `~/secrets/tiingo-drive/client_secret.json`) and export `GOOGLE_OAUTH_CLIENT_SECRETS_FILE` to that path.
 3. Optionally export `GOOGLE_OAUTH_TOKEN_FILE` to a secure writable location; otherwise the helper defaults to `~/.config/tiingo-data-pull/google-drive-token.json`.
@@ -69,8 +78,10 @@ override both to simplify experimentation.
 5. Ensure the configured Drive folder (`GOOGLE_DRIVE_FOLDER_ID`) is shared with the Google account used during OAuth.
 
 ## Usage
+
 1. Prepare a JSON file containing an array of tickers, for example `all_tickers.json`.
 2. Execute the CLI:
+
    ```bash
    python -m tiingo_data_pull.cli \
        --tickers all_tickers.json \
@@ -80,17 +91,21 @@ override both to simplify experimentation.
        --output-dir exports \
        --json-prefix tiingo_snapshot
    ```
+
 3. To perform a dry run that only validates connectivity and filtering:
+
    ```bash
    python -m tiingo_data_pull.cli --tickers all_tickers.json --dry-run
    ```
 
 ### Lightweight JSON export pipeline
+
 For teams that only need to download Tiingo prices and write them to disk, the repository now
 includes a minimal batch pipeline driven by the new `pipeline.py` and `tiingo_client.py`
 modules under `src/`.
 
 1. Create a `.env` file (or export environment variables) with at least:
+
    ```env
    TIINGO_API_KEY=your-tiingo-token
    TIINGO_TICKERS_FILE=all_tickers.json  # optional override
@@ -99,7 +114,9 @@ modules under `src/`.
    TIINGO_MAX_RETRIES=3
    TIINGO_BACKOFF_SECONDS=1.0
    ```
+
 2. Run the pipeline from a Python shell:
+
    ```python
    from datetime import date
    from pipeline import run_from_env
@@ -136,11 +153,13 @@ modules under `src/`.
 ```
 
 ## Troubleshooting
+
 - **401 Unauthorized**: Confirm your API keys and OAuth client/token files are accessible, valid, and owned by an account that can access the configured Drive folder.
 - **Rate limiting**: Reduce `--batch-size` or increase delays between runs to stay within free tier quotas.
 - **Duplicate data**: Ensure the Notion ticker and date property names match your database schema so the filtering step can detect existing rows.
 
 ## Contribution Guide
+
 1. Fork the repository and create a feature branch.
 2. Install dependencies and run the test suite with `pytest` before submitting changes.
 3. Follow the existing code style (type hints, docstrings, and modular functions).
