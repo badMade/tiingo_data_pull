@@ -90,7 +90,7 @@ def load_notion_config(
     for field in fields(NotionPropertyMapping):
         env_key = f"NOTION_{field.name.upper()}_PROPERTY"
         env_value = env.get(env_key)
-        if env_value:
+        if env_value is not None:
             mapping_kwargs[field.name] = str(env_value)
             continue
 
