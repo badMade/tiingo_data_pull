@@ -176,11 +176,7 @@ class NotionClient:
         start_date: Optional[date],
         end_date: Optional[date],
     ) -> Dict[str, object]:
-        ticker_filter_key = (
-            "title"
-            if self._properties.ticker_property_type == "title"
-            else "rich_text"
-        )
+        ticker_filter_key = self._properties.ticker_property_type
         filters: List[Dict[str, object]] = [
             {
                 "property": self._properties.ticker_property,
