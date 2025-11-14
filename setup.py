@@ -5,13 +5,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+    requirements = [line.strip() for line in fh if line.strip() and
+                    not line.startswith("#")]
 
 setup(
     name="tiingo_data_pull",
     version="0.1.0",
     author="badMade",
-    description="Pipeline to sync Tiingo market data with Notion and Google Drive",
+    description="Pipeline to sync Tiingo market data "
+    "with Notion and Google Drive",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/badMade/tiingo_data_pull",

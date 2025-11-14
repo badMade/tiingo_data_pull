@@ -1,4 +1,4 @@
-"""Client utilities for interacting with the Notion API."""
+"""Compatibility exports for the Notion integration."""
 from __future__ import annotations
 
 from copy import copy
