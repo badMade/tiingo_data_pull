@@ -21,7 +21,7 @@ class NotionPropertyConfig:
 
     ticker_property: str = "Ticker"
     ticker_property_type: Literal["title", "rich_text"] = "title"
-    page_title_property: str = "Name"
+    title_property: str = "Title"
     date_property: str = "Date"
     close_property: str = "Close"
     open_property: str = "Open"
@@ -219,28 +219,35 @@ class NotionClient:
             "type": "text",
             "text": {"content": price.ticker},
         }
-        ticker_property_payload = {self._properties.ticker_property_type: [ticker_value]}
-
-        properties: Dict[str, object] = {
-            self._properties.ticker_property: ticker_property_payload,
-            self._properties.date_property: {
-                "date": {"start": price.date.isoformat()},
-            },
-            self._properties.close_property: {
-                "number": price.close,
-            },
-            self._properties.open_property: {
-                "number": price.open,
-            },
-            self._properties.high_property: {
-                "number": price.high,
-            },
-            self._properties.low_property: {
-                "number": price.low,
-            },
-            self._properties.volume_property: {
-                "number": price.volume,
-            },
+        
+        properties: Dict[str, object] = {}
+        
+        if self._properties.ticker_property_type == "title":
+            # When ticker is title type, use it as the title
+            properties[self._properties.ticker_property] = {"title": [ticker_value]}
+        else:
+            # When ticker is rich_text, populate both ticker and a separate title
+            properties[self._properties.ticker_property] = {"rich_text": [ticker_value]}
+            properties[self._properties.title_property] = {"title": [ticker_value]}
+        
+        # Add other properties
+        properties[self._properties.date_property] = {
+            "date": {"start": price.date.isoformat()},
+        }
+        properties[self._properties.close_property] = {
+            "number": price.close,
+        }
+        properties[self._properties.open_property] = {
+            "number": price.open,
+        }
+        properties[self._properties.high_property] = {
+            "number": price.high,
+        }
+        properties[self._properties.low_property] = {
+            "number": price.low,
+        }
+        properties[self._properties.volume_property] = {
+            "number": price.volume,
         }
 
         if price.adj_close is not None:
