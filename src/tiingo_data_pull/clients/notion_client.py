@@ -168,7 +168,8 @@ class NotionClient:
         session.max_redirects = source.max_redirects
         session.hooks = copy(source.hooks)
         session.params = copy(source.params)
-        session.stream = source.stream
+        if hasattr(source, "stream"):
+            session.stream = source.stream
         session.adapters = source.adapters.copy()
         return session
 
