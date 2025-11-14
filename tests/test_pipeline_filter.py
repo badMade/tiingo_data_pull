@@ -38,6 +38,10 @@ class StubNotionClient:
     def create_price_pages(self, prices: Sequence[PriceBar]) -> List[str]:
         raise AssertionError("Not expected in filtering test")
 
+    def clone_with_new_session(self) -> "StubNotionClient":
+        """Return a copy of this stub client for thread-local usage."""
+        return StubNotionClient(self._existing_dates)
+
 
 class StubDriveClient:
     def upload_json(self, file_path: str) -> Dict[str, str]:
