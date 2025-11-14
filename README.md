@@ -15,21 +15,29 @@ This project automates the process of collecting historical market data from the
 
 ## Installation
 
-1. Create and activate a Python 3.11 virtual environment:
+1. Run the helper script to create a virtual environment (defaults to `.venv`) and install editable dependencies:
+
+   ```bash
+   ./scripts/install.sh
+   ```
+
+   The script upgrades `pip`, ensures `setuptools` is present (resolving the common `pip install setuptools` error), and installs the package in editable mode. You can override the Python binary or venv location via `PYTHON_BIN` and `VENV_DIR`.
+
+2. If you prefer to do the steps manually, create and activate a Python 3.11 virtual environment:
 
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
 
-2. Install the package in editable mode:
+3. Install the package in editable mode:
 
    ```bash
    pip install -e .
    ```
 
    This will install all dependencies and make the `tiingo_data_pull` package importable.
-3. Key dependencies include `requests`, `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` for OAuth-enabled Drive uploads.
+4. Key dependencies include `requests`, `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` for OAuth-enabled Drive uploads.
 
 ## Configuration
 
