@@ -47,23 +47,29 @@ def fetch_prices(
     }
     headers = {"Authorization": f"Token {token}"}
 
-    http = session or requests.Session()
-    response = http.get(
-        f"{API_BASE_URL}/{ticker}/prices",
-        params=payload,
-        headers=headers,
-        timeout=timeout,
-    )
-
-    if not response.ok:
-        raise TiingoApiError(
-            f"Tiingo request failed for {ticker}: {response.status_code} {response.text}",
+    def _perform_request(http: requests.Session) -> List[dict]:
+        response = http.get(
+            f"{API_BASE_URL}/{ticker}/prices",
+            params=payload,
+            headers=headers,
+            timeout=timeout,
         )
 
-    data = response.json()
-    if not isinstance(data, list):
-        raise TiingoApiError(
-            "Unexpected Tiingo response payload. Expected a list of price objects.",
-        )
+        if not response.ok:
+            raise TiingoApiError(
+                f"Tiingo request failed for {ticker}: {response.status_code} {response.text}",
+            )
 
-    return data
+        data = response.json()
+        if not isinstance(data, list):
+            raise TiingoApiError(
+                "Unexpected Tiingo response payload. Expected a list of price objects.",
+            )
+
+        return data
+
+    if session is not None:
+        return _perform_request(session)
+
+    with requests.Session() as http:
+        return _perform_request(http)
