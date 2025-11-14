@@ -253,6 +253,15 @@ class NotionClient:
         if price.adj_close is not None:
             properties[self._properties.adj_close_property] = {"number": price.adj_close}
 
+        if (
+            self._properties.ticker_property_type == "rich_text"
+            and self._properties.page_title_property
+            and self._properties.page_title_property != self._properties.ticker_property
+        ):
+            properties[self._properties.page_title_property] = {
+                "title": [ticker_value]
+            }
+
         return {
             "parent": {"database_id": self._database_id},
             "properties": properties,
