@@ -179,6 +179,10 @@ class NotionClient:
         """Return a new adapter instance preserving configuration."""
 
         if isinstance(adapter, HTTPAdapter):
+            # Reconstruct the HTTPAdapter to ensure the new session gets its own
+            # connection pool. This relies on private attributes of the adapter
+            # as there's no public API to clone it. This may be fragile if
+            # `requests` internals change in the future.
             return HTTPAdapter(
                 pool_connections=getattr(adapter, "_pool_connections", 10),
                 pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
