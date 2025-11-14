@@ -1,13 +1,14 @@
 """Client utilities for interacting with the Notion API."""
 from __future__ import annotations
 
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
+from requests.adapters import HTTPAdapter
 
 from ..models import PriceBar
 
@@ -170,8 +171,25 @@ class NotionClient:
         session.params = copy(source.params)
         # Preserve custom adapters (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
-            session.mount(prefix, adapter)
+            session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
+
+    @staticmethod
+    def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
+        """Return a new adapter instance preserving configuration."""
+
+        if isinstance(adapter, HTTPAdapter):
+            return HTTPAdapter(
+                pool_connections=getattr(adapter, "_pool_connections", 10),
+                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                max_retries=copy(adapter.max_retries),
+                pool_block=getattr(adapter, "_pool_block", False),
+            )
+
+        # Fall back to deepcopy for custom adapters which do not expose their
+        # configuration publicly. deepcopy() ensures the cloned adapter has its
+        # own resources instead of sharing the original instance.
+        return deepcopy(adapter)
 
     def _build_filter(
         self,
