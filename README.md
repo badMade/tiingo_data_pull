@@ -123,12 +123,14 @@ modules under `src/`.
 
    run_from_env(date(2024, 1, 1), date(2024, 1, 31))
    ```
+
 3. The script reads tickers from `all_tickers.json`, issues sequential API calls with retry and
    exponential backoff, aggregates results into a `dict[ticker, list[price]]`, and writes a JSON
    file per batch (e.g., `data/prices_batch_001.json`).
 
 ## File Structure
-```
+
+```Bash
 .
 ├── all_tickers.json          # Example ticker list
 ├── requirements.txt          # Python dependencies
