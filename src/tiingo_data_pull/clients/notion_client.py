@@ -219,10 +219,7 @@ class NotionClient:
             "type": "text",
             "text": {"content": price.ticker},
         }
-        if self._properties.ticker_property_type == "title":
-            ticker_property_payload = {"title": [ticker_value]}
-        else:
-            ticker_property_payload = {"rich_text": [ticker_value]}
+        ticker_property_payload = {self._properties.ticker_property_type: [ticker_value]}
 
         properties: Dict[str, object] = {
             self._properties.ticker_property: ticker_property_payload,
