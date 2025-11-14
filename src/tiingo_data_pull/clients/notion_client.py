@@ -5,6 +5,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
+try:
+    from typing import Literal
+except ImportError:  # pragma: no cover - Python <3.8 fallback
+    from typing_extensions import Literal  # type: ignore
 
 import requests
 
@@ -16,6 +20,7 @@ class NotionPropertyConfig:
     """Configuration for mapping price data to Notion database properties."""
 
     ticker_property: str = "Ticker"
+    ticker_property_type: Literal["title", "rich_text"] = "title"
     date_property: str = "Date"
     close_property: str = "Close"
     open_property: str = "Open"
@@ -170,10 +175,15 @@ class NotionClient:
         start_date: Optional[date],
         end_date: Optional[date],
     ) -> Dict[str, object]:
+        ticker_filter_key = (
+            "title"
+            if self._properties.ticker_property_type == "title"
+            else "rich_text"
+        )
         filters: List[Dict[str, object]] = [
             {
                 "property": self._properties.ticker_property,
-                "title": {"equals": ticker},
+                ticker_filter_key: {"equals": ticker},
             }
         ]
         if start_date:
@@ -204,15 +214,17 @@ class NotionClient:
             return None
 
     def _price_to_page_payload(self, price: PriceBar) -> Dict[str, object]:
+        ticker_value = {
+            "type": "text",
+            "text": {"content": price.ticker},
+        }
+        if self._properties.ticker_property_type == "title":
+            ticker_property_payload = {"title": [ticker_value]}
+        else:
+            ticker_property_payload = {"rich_text": [ticker_value]}
+
         properties: Dict[str, object] = {
-            self._properties.ticker_property: {
-                "title": [
-                    {
-                        "type": "text",
-                        "text": {"content": price.ticker},
-                    }
-                ]
-            },
+            self._properties.ticker_property: ticker_property_payload,
             self._properties.date_property: {
                 "date": {"start": price.date.isoformat()},
             },
