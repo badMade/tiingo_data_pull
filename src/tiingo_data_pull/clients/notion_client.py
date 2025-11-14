@@ -194,6 +194,11 @@ class NotionClient:
         new_session.cert = base.cert
         new_session.trust_env = base.trust_env
         new_session.max_redirects = base.max_redirects
+        
+        # Preserve custom adapters for retries, connection pooling, etc.
+        for prefix, adapter in base.adapters.items():
+            new_session.mount(prefix, adapter)
+        
         return new_session
 
     def _build_filter(
