@@ -7,6 +7,7 @@ from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
+import threading
 
 from ..models import PriceBar
 
@@ -64,6 +65,7 @@ class NotionClient:
         self._page_size = min(max(page_size, 1), 100)
         self._max_pages = max_pages
         self._max_workers = max(max_workers, 1)
+        self._thread_local = threading.local()
 
     @property
     def _headers(self) -> Dict[str, str]:
@@ -141,7 +143,8 @@ class NotionClient:
         def _create_single_page(price: PriceBar) -> str:
             """Helper to create a single page and return its ID."""
             payload = self._price_to_page_payload(price)
-            response = self._session.post(
+            session = self._get_thread_local_session()
+            response = session.post(
                 f"{self.base_url}/pages",
                 headers=self._headers,
                 json=payload,
@@ -168,6 +171,30 @@ class NotionClient:
                     ) from exc
 
         return created_ids
+
+    def _get_thread_local_session(self) -> requests.Session:
+        """Return a session instance that is safe to use on the current thread."""
+
+        session = getattr(self._thread_local, "session", None)
+        if session is None:
+            session = self._clone_base_session()
+            self._thread_local.session = session
+        return session
+
+    def _clone_base_session(self) -> requests.Session:
+        """Create a new session copying configuration from the base session."""
+
+        new_session = requests.Session()
+        base = self._session
+        new_session.headers.update(base.headers)
+        new_session.cookies = base.cookies.copy()
+        new_session.auth = base.auth
+        new_session.proxies = base.proxies
+        new_session.verify = base.verify
+        new_session.cert = base.cert
+        new_session.trust_env = base.trust_env
+        new_session.max_redirects = base.max_redirects
+        return new_session
 
     def _build_filter(
         self,
