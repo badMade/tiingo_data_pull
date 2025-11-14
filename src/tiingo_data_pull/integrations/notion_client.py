@@ -86,14 +86,20 @@ def load_notion_config(
 
     properties_section = _extract_dict(file_data.get("properties", {}))
     default_mapping = NotionPropertyMapping()
-    mapping_kwargs: MutableMapping[str, str] = {
-        field.name: str(
-            env.get(f"NOTION_{field.name.upper()}_PROPERTY")
-            or properties_section.get(field.name)
-            or getattr(default_mapping, field.name)
-        )
-        for field in fields(NotionPropertyMapping)
-    }
+    mapping_kwargs: MutableMapping[str, str] = {}
+    for field in fields(NotionPropertyMapping):
+        env_key = f"NOTION_{field.name.upper()}_PROPERTY"
+        env_value = env.get(env_key)
+        if env_value is not None:
+            mapping_kwargs[field.name] = str(env_value)
+            continue
+
+        file_value = properties_section.get(field.name)
+        if isinstance(file_value, str) and file_value:
+            mapping_kwargs[field.name] = file_value
+            continue
+
+        mapping_kwargs[field.name] = getattr(default_mapping, field.name)
 
     if property_overrides:
         for key, value in property_overrides.items():
