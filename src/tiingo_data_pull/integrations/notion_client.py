@@ -194,6 +194,8 @@ class NotionClient:
 
             for price, result in zip(batch, results):
                 if isinstance(result, Exception):
+                    if not isinstance(result, APIResponseError):
+                        raise result
                     self._log.warning(
                         "Failed to create Notion row for %s on %s: %s",
                         price.ticker,
