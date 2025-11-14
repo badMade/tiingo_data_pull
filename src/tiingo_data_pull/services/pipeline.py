@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Iterable, List, Mapping, MutableMapping, Optional
+from typing import Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple
 
 from ..clients.drive_client import GoogleDriveClient
 from ..clients.notion_client import NotionClient
@@ -104,22 +104,24 @@ class TiingoToNotionPipeline:
     ) -> MutableMapping[str, List[PriceBar]]:
         filtered: MutableMapping[str, List[PriceBar]] = {}
         
-        # Fetch existing dates concurrently for all tickers
-        with ThreadPoolExecutor() as executor:
-            future_to_ticker = {
-                executor.submit(
-                    self._notion_client.fetch_existing_dates,
+        def _fetch_dates_for_ticker(ticker: str) -> Tuple[str, Set[str]]:
+            isolated_client = self._notion_client.clone_with_new_session()
+            return (
+                ticker,
+                isolated_client.fetch_existing_dates(
                     ticker,
                     start_date=start_date,
                     end_date=end_date,
-                ): ticker
-                for ticker in prices_by_ticker.keys()
-            }
-            
-            for future in as_completed(future_to_ticker):
-                ticker = future_to_ticker[future]
-                existing_dates = future.result()
+                ),
+            )
+
+        # Fetch existing dates concurrently for all tickers using isolated sessions
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(_fetch_dates_for_ticker, ticker) for ticker in prices_by_ticker.keys()]
+
+            for future in as_completed(futures):
+                ticker, existing_dates = future.result()
                 prices = prices_by_ticker[ticker]
                 filtered[ticker] = [price for price in prices if price.date.isoformat() not in existing_dates]
-        
+
         return filtered
