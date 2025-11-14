@@ -193,16 +193,16 @@ class NotionClient:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for price, result in zip(batch, results):
-                if isinstance(result, BaseException):
-                    if isinstance(result, APIResponseError):
-                        self._log.warning(
-                            "Failed to create Notion row for %s on %s: %s",
-                            price.ticker,
-                            price.date.isoformat(),
-                            result,
-                        )
-                        continue
-                    raise result
+                if isinstance(result, Exception):
+                    if not isinstance(result, APIResponseError):
+                        raise result
+                    self._log.warning(
+                        "Failed to create Notion row for %s on %s: %s",
+                        price.ticker,
+                        price.date.isoformat(),
+                        result,
+                    )
+                    continue
                 created_id = result.get("id", "")
                 created_ids.append(created_id)
                 self._log.debug(
