@@ -203,7 +203,7 @@ class NotionClient:
             return HTTPAdapter(
                 pool_connections=getattr(adapter, "_pool_connections", 10),
                 pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
-                max_retries=copy(adapter.max_retries),
+                max_retries=copy(getattr(adapter, "max_retries", 0)),
                 pool_block=getattr(adapter, "_pool_block", False),
             )
 
