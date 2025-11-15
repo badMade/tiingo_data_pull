@@ -1,7 +1,7 @@
 """Client utilities for interacting with the Notion API."""
 from __future__ import annotations
 
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
@@ -168,9 +168,12 @@ class NotionClient:
         session.max_redirects = source.max_redirects
         session.hooks = copy(source.hooks)
         session.params = copy(source.params)
-        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
+        # Preserve custom adapters (e.g., retry, cache, connection pool configs).
+        # Deep copy adapters to avoid sharing connection pools across sessions which can
+        # lead to race conditions when multiple thread-local sessions operate
+        # concurrently.
         for prefix, adapter in source.adapters.items():
-            session.mount(prefix, adapter)
+            session.mount(prefix, deepcopy(adapter))
         return session
 
     def _build_filter(
