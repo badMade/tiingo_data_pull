@@ -160,7 +160,7 @@ class TiingoClient:
 
         tickers_list = list(tickers)
         results: dict[str, List[PriceBar]] = {}
-        
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_ticker = {
                 executor.submit(
@@ -171,9 +171,9 @@ class TiingoClient:
                 ): ticker
                 for ticker in tickers_list
             }
-            
+
             for future in as_completed(future_to_ticker):
                 ticker = future_to_ticker[future]
                 results[ticker] = future.result()
-        
+
         return results
