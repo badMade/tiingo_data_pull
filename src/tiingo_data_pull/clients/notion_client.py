@@ -177,16 +177,26 @@ class NotionClient:
     @staticmethod
     def _clone_adapter(adapter: BaseAdapter) -> BaseAdapter:
         if isinstance(adapter, HTTPAdapter):
-            # Reconstruct the HTTPAdapter to ensure the new session receives its own
-            # connection pool. This depends on private attributes because requests
-            # does not expose a public cloning API, so future library changes could
-            # require adjustments here.
-            return HTTPAdapter(
+            adapter_cls = type(adapter)
+            kwargs = dict(
                 pool_connections=getattr(adapter, "_pool_connections", 10),
                 pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
                 max_retries=copy(adapter.max_retries),
                 pool_block=getattr(adapter, "_pool_block", False),
             )
+            try:
+                # Reconstruct the adapter so each cloned session gets a dedicated
+                # connection pool. This depends on private attributes because
+                # requests does not expose a public cloning API, so future library
+                # changes could require adjustments here.
+                return adapter_cls(**kwargs)
+            except TypeError:
+                # Subclasses might require additional __init__ args. Reuse the
+                # adapter so custom behaviour is preserved instead of silently
+                # falling back to a vanilla HTTPAdapter.
+                if adapter_cls is not HTTPAdapter:
+                    return adapter
+                raise
         return adapter
 
     def _build_filter(
