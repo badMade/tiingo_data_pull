@@ -8,7 +8,8 @@ import os
 from dataclasses import dataclass, fields
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Mapping, MutableMapping, Optional, Sequence, Set
+from string import Template
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Set
 
 from notion_client import AsyncClient
 from notion_client.errors import APIResponseError
@@ -73,6 +74,7 @@ def load_notion_config(
             raise RuntimeError(f"Notion config file not found: {config_path}")
         with path.open("r", encoding="utf-8") as handle:
             file_data = json.load(handle)
+    file_data = _expand_env_placeholders(file_data, env)
 
     api_key = _read_config_value("api_key", file_data, env, "NOTION_API_KEY")
     database_id = _read_config_value("database_id", file_data, env, "NOTION_DATABASE_ID")
@@ -110,12 +112,15 @@ def _read_config_value(
     env: Mapping[str, str],
     env_key: str,
 ) -> Optional[str]:
+    value = file_data.get(key)
+    if isinstance(value, str):
+        if value:
+            return value
+    elif value is not None:
+        raise TypeError(f"Configuration value for '{key}' must be a string, but found {type(value).__name__}.")
     env_value = env.get(env_key)
     if env_value:
         return env_value
-    value = file_data.get(key)
-    if isinstance(value, str) and value:
-        return value
     return None
 
 
@@ -123,6 +128,18 @@ def _extract_dict(value: object) -> Dict[str, object]:
     if isinstance(value, Mapping):
         return dict(value)
     return {}
+
+
+def _expand_env_placeholders(value: object, env: Mapping[str, str]) -> Any:
+    """Recursively expand ``$VAR``/``${VAR}`` placeholders in config data."""
+
+    if isinstance(value, str):
+        return Template(value).safe_substitute(env)
+    if isinstance(value, Mapping):
+        return {k: _expand_env_placeholders(v, env) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_expand_env_placeholders(item, env) for item in value]
+    return value
 
 
 class NotionClient:

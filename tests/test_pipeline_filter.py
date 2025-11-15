@@ -10,6 +10,7 @@ from tiingo_data_pull.models import PriceBar
 from tiingo_data_pull.services.pipeline import PipelineConfig, TiingoToNotionPipeline
 
 
+
 class StubTiingoClient:
     def fetch_price_history_bulk(
         self,
@@ -65,7 +66,7 @@ def make_price(ticker: str, day: date) -> PriceBar:
     )
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio("asyncio")
 async def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeline) -> None:
     prices = {
         "AAPL": [
@@ -81,7 +82,7 @@ async def test_filter_new_prices_removes_existing(pipeline: TiingoToNotionPipeli
     assert [price.date for price in filtered["AAPL"]] == [date(2024, 1, 2)]
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio("asyncio")
 async def test_filter_new_prices_handles_empty_existing() -> None:
     pipeline = TiingoToNotionPipeline(
         StubTiingoClient(),

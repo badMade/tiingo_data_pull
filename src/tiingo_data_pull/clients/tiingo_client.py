@@ -13,18 +13,14 @@ import threading
 from ..models import PriceBar
 
 
-class TiingoClient:
-    """Lightweight wrapper around the Tiingo REST API."""
-
-    base_url = "https://api.tiingo.com/tiingo/daily"
+class _ThreadLocalSessionProvider:
+    """Lazily creates per-thread ``requests.Session`` instances."""
 
     def __init__(
         self,
-        api_key: str,
         *,
-        session: Optional[Session] = None,
-        session_factory: Optional[Callable[[], Session]] = None,
-        timeout: int = 30,
+        session: Optional[Session],
+        factory: Optional[Callable[[], Session]],
     ) -> None:
         """Initialise the Tiingo client.
 
@@ -39,7 +35,6 @@ class TiingoClient:
 
         self._api_key = api_key
         self._thread_local = threading.local()
-        self._timeout = timeout
 
         if session_factory is not None:
             self._session_factory: Callable[[], Session] = session_factory
@@ -67,7 +62,17 @@ class TiingoClient:
             cloned.mount(prefix, adapter)
         return cloned
 
-    def _get_session(self) -> Session:
+    def _build_session(self) -> Session:
+        factory = self._factory
+        if factory is not None:
+            session = factory()
+            if session is not None:
+                return session
+        if self._session_template is not None:
+            return self._clone_session()
+        return requests.Session()
+
+    def get(self) -> Session:
         session = getattr(self._thread_local, "session", None)
         if session is None:
             session = self._session_factory()
@@ -75,6 +80,45 @@ class TiingoClient:
                 session = requests.Session()
             self._thread_local.session = session
         return session
+
+
+class TiingoClient:
+    """Lightweight wrapper around the Tiingo REST API."""
+
+    base_url = "https://api.tiingo.com/tiingo/daily"
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        session: Optional[Session] = None,
+        session_factory: Optional[Callable[[], Session]] = None,
+        timeout: int = 30,
+    ) -> None:
+        """Initialise the Tiingo client.
+
+        Args:
+            api_key: The Tiingo API key.
+            session: Optional :class:`requests.Session` for connection pooling.
+            session_factory: Optional callable returning a configured
+                :class:`requests.Session`. When provided, it takes precedence
+                over ``session`` and is invoked separately for each thread.
+            timeout: Request timeout in seconds.
+        """
+
+        factory = session_factory
+        if factory is None and session is None:
+            factory = requests.Session
+
+        self._api_key = api_key
+        self._sessions = _ThreadLocalSessionProvider(
+            session=session,
+            factory=factory,
+        )
+        self._timeout = timeout
+
+    def _get_session(self) -> Session:
+        return self._sessions.get()
 
     def fetch_price_history(
         self,
