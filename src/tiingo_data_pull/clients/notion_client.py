@@ -8,7 +8,7 @@ from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
-from requests.adapters import BaseAdapter, HTTPAdapter
+from requests.adapters import BaseAdapter, HTTPAdapter, DEFAULT_POOLSIZE
 
 from ..models import PriceBar
 
