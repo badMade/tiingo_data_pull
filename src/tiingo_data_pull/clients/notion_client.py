@@ -181,7 +181,7 @@ class NotionClient:
             # connection pool. This relies on private attributes because requests
             # lacks a public adapter cloning API, so future changes to its internals
             # could require revisiting this logic.
-            return HTTPAdapter(
+            return adapter.__class__(
                 pool_connections=getattr(adapter, "_pool_connections", 10),
                 pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
                 max_retries=copy(adapter.max_retries),
