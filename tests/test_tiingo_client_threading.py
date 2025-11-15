@@ -8,9 +8,14 @@ import requests
 from tiingo_data_pull.clients.tiingo_client import TiingoClient
 
 
+class MockSession(requests.Session):
+    """A mock session for identity checks."""
+    pass
+
+
 def test_thread_local_sessions_are_not_shared_across_threads() -> None:
-    client = TiingoClient("token", session_factory=lambda: object())
-    results: list[tuple[object, object]] = [None, None]  # type: ignore[assignment]
+    client = TiingoClient("token", session_factory=MockSession)
+    results: list[tuple[requests.Session, requests.Session]] = [None, None]  # type: ignore[assignment]
 
     def worker(index: int) -> None:
         first = client._get_session()
