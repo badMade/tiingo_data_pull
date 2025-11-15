@@ -178,7 +178,7 @@ class NotionClient:
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
         """Return a new adapter instance preserving configuration."""
 
-        if isinstance(adapter, HTTPAdapter):
+        if type(adapter) is HTTPAdapter:
             # Reconstruct the HTTPAdapter to ensure the new session gets its own
             # connection pool. This relies on private attributes of the adapter
             # as there's no public API to clone it. This may be fragile if
