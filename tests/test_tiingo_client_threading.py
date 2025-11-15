@@ -2,62 +2,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import importlib.util
 import itertools
 from pathlib import Path
 import sys
 import threading
-import types
 
-
+# Add the 'src' directory to the Python path to allow direct imports from the source tree.
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_ROOT = ROOT / "src" / "tiingo_data_pull"
+sys.path.insert(0, str(ROOT / "src"))
 
-
-def _ensure_tiingo_package() -> None:
-    base_name = "tiingo_data_pull"
-    if base_name not in sys.modules:
-        base_pkg = types.ModuleType(base_name)
-        base_pkg.__path__ = [str(PACKAGE_ROOT)]
-        sys.modules[base_name] = base_pkg
-    else:
-        base_pkg = sys.modules[base_name]
-
-    clients_name = f"{base_name}.clients"
-    if clients_name not in sys.modules:
-        clients_pkg = types.ModuleType(clients_name)
-        clients_pkg.__path__ = [str(PACKAGE_ROOT / "clients")]
-        sys.modules[clients_name] = clients_pkg
-    else:
-        clients_pkg = sys.modules[clients_name]
-
-    models_name = f"{base_name}.models"
-    if models_name not in sys.modules:
-        spec = importlib.util.spec_from_file_location(
-            models_name,
-            str(PACKAGE_ROOT / "models" / "__init__.py"),
-            submodule_search_locations=[str(PACKAGE_ROOT / "models")],
-        )
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[models_name] = module
-        assert spec and spec.loader is not None
-        spec.loader.exec_module(module)
-    else:
-        module = sys.modules[models_name]
-
-    setattr(base_pkg, "clients", clients_pkg)
-    setattr(base_pkg, "models", module)
-
-
-_ensure_tiingo_package()
-
-MODULE_PATH = PACKAGE_ROOT / "clients" / "tiingo_client.py"
-spec = importlib.util.spec_from_file_location("tiingo_data_pull.clients.tiingo_client", MODULE_PATH)
-tiingo_client_module = importlib.util.module_from_spec(spec)
-assert spec is not None and spec.loader is not None
-spec.loader.exec_module(tiingo_client_module)
-
-TiingoClient = tiingo_client_module.TiingoClient
+from tiingo_data_pull.clients.tiingo_client import TiingoClient  # noqa: E402
 
 
 class DummyResponse:
