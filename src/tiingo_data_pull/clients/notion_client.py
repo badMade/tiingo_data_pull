@@ -200,12 +200,17 @@ class NotionClient:
         try:
             return deepcopy(adapter)
         except TypeError:
-            return HTTPAdapter(
-                pool_connections=getattr(adapter, "_pool_connections", 10),
-                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
-                max_retries=copy(getattr(adapter, "max_retries", 0)),
-                pool_block=getattr(adapter, "_pool_block", False),
-            )
+            adapter_kwargs = {
+                "pool_connections": getattr(adapter, "_pool_connections", 10),
+                "pool_maxsize": getattr(adapter, "_pool_maxsize", 10),
+                "pool_block": getattr(adapter, "_pool_block", False),
+            }
+
+            max_retries = getattr(adapter, "max_retries", None)
+            if max_retries is not None:
+                adapter_kwargs["max_retries"] = copy(max_retries)
+
+            return HTTPAdapter(**adapter_kwargs)
 
     def _build_filter(
         self,
