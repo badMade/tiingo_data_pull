@@ -4,9 +4,9 @@ The steps below explain how to keep the repository's CodeQL analysis constrained
 
 ## Disable the Default CodeQL Setup
 
-1. Open the repository in GitHub and navigate to **Settings → Security → Code security and analysis → Code scanning**.
-2. Under **Default setup**, choose **CodeQL** and select **Disable** to remove the automatic configuration that GitHub enables by default.
-3. Confirm the dialog so that only custom workflows remain active.
+1. Open the repository in GitHub and navigate to **Settings** > **Code security and analysis**.
+2. In the "Code scanning" section, find "Default setup". Click the menu (often `...`) next to it and select **Disable CodeQL**.
+3. Confirm the action in the dialog box.
 
 > **Why**: The repository already provides a tailored workflow (`.github/workflows/codeql.yml`) that uploads SARIF results. Running the default setup in parallel can cause duplicate or conflicting uploads.
 
