@@ -170,8 +170,22 @@ class NotionClient:
         session.params = copy(source.params)
         # Preserve custom adapters (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
-            session.mount(prefix, adapter)
+            session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
+
+    @staticmethod
+    def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
+        try:
+            return copy(adapter)
+        except Exception:
+            adapter_cls = type(adapter)
+            adapter_kwargs: Dict[str, object] = {}
+            if (max_retries := getattr(adapter, "max_retries", None)) is not None:
+                adapter_kwargs["max_retries"] = copy(max_retries)
+            try:
+                return adapter_cls(**adapter_kwargs)
+            except Exception:
+                return adapter
 
     def _build_filter(
         self,
