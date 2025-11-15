@@ -178,22 +178,50 @@ class NotionClient:
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
         """Return a new adapter instance preserving configuration."""
 
-        if type(adapter) is HTTPAdapter:
-            # Reconstruct the HTTPAdapter to ensure the new session gets its own
-            # connection pool. This relies on private attributes of the adapter
-            # as there's no public API to clone it. This may be fragile if
-            # `requests` internals change in the future.
-            return HTTPAdapter(
-                pool_connections=getattr(adapter, "_pool_connections", 10),
-                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
-                max_retries=copy(adapter.max_retries),
-                pool_block=getattr(adapter, "_pool_block", False),
-            )
+        if isinstance(adapter, HTTPAdapter):
+            # Extract configuration from the adapter
+            pool_connections = getattr(adapter, "_pool_connections", 10)
+            pool_maxsize = getattr(adapter, "_pool_maxsize", 10)
+            max_retries = copy(adapter.max_retries)
+            pool_block = getattr(adapter, "_pool_block", False)
+            
+            # For base HTTPAdapter, reconstruct it directly
+            if type(adapter) is HTTPAdapter:
+                return HTTPAdapter(
+                    pool_connections=pool_connections,
+                    pool_maxsize=pool_maxsize,
+                    max_retries=max_retries,
+                    pool_block=pool_block,
+                )
+            
+            # For HTTPAdapter subclasses, try to instantiate the subclass
+            # with standard HTTPAdapter parameters
+            try:
+                adapter_class = type(adapter)
+                return adapter_class(
+                    pool_connections=pool_connections,
+                    pool_maxsize=pool_maxsize,
+                    max_retries=max_retries,
+                    pool_block=pool_block,
+                )
+            except (TypeError, AttributeError):
+                # Subclass constructor doesn't accept standard parameters,
+                # fall back to base HTTPAdapter to preserve thread safety
+                return HTTPAdapter(
+                    pool_connections=pool_connections,
+                    pool_maxsize=pool_maxsize,
+                    max_retries=max_retries,
+                    pool_block=pool_block,
+                )
 
-        # Fall back to deepcopy for custom adapters which do not expose their
-        # configuration publicly. deepcopy() ensures the cloned adapter has its
-        # own resources instead of sharing the original instance.
-        return deepcopy(adapter)
+        # Fall back to deepcopy for non-HTTPAdapter adapters. Catch TypeError
+        # in case the adapter contains unpicklable objects (e.g., threading.RLock)
+        try:
+            return deepcopy(adapter)
+        except TypeError:
+            # Cannot deepcopy, return the original adapter (not thread-safe)
+            # This is a best-effort fallback for custom adapters
+            return adapter
 
     def _build_filter(
         self,
