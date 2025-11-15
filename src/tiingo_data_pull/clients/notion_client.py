@@ -182,8 +182,8 @@ class NotionClient:
             # does not expose a public cloning API, so future library changes could
             # require adjustments here.
             return HTTPAdapter(
-                pool_connections=getattr(adapter, "_pool_connections", 10),
-                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                pool_connections=getattr(adapter, "_pool_connections", DEFAULT_POOLSIZE),
+                pool_maxsize=getattr(adapter, "_pool_maxsize", DEFAULT_POOLSIZE),
                 max_retries=copy(adapter.max_retries),
                 pool_block=getattr(adapter, "_pool_block", False),
             )
