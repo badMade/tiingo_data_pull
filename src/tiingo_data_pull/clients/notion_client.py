@@ -195,8 +195,20 @@ class NotionClient:
 
         # Fall back to deepcopy for custom adapters which do not expose their
         # configuration publicly. deepcopy() ensures the cloned adapter has its
-        # own resources instead of sharing the original instance.
-        return deepcopy(adapter)
+        # own resources instead of sharing the original instance. Some custom
+        # adapters eagerly create their pool managers (which include locks)
+        # during ``__init__``; those cannot be deep-copied. In that case we
+        # degrade gracefully by reconstructing a vanilla ``HTTPAdapter`` rather
+        # than raising an exception.
+        try:
+            return deepcopy(adapter)
+        except TypeError:
+            return HTTPAdapter(
+                pool_connections=getattr(adapter, "_pool_connections", 10),
+                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                max_retries=copy(getattr(adapter, "max_retries", 0)),
+                pool_block=getattr(adapter, "_pool_block", False),
+            )
 
     def _build_filter(
         self,
