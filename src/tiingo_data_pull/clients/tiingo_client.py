@@ -38,29 +38,26 @@ class TiingoClient:
         """
 
         self._api_key = api_key
-        if session_factory is not None:
-            self._session_factory: Optional[Callable[[], Session]] = session_factory
-        elif session is None:
-            self._session_factory = requests.Session
-        else:
-            self._session_factory = None
-        self._session_template = session
         self._thread_local = threading.local()
         self._timeout = timeout
 
-    def _clone_session(self) -> Session:
-        """Create a new :class:`requests.Session` using the template, if any."""
+        if session_factory is not None:
+            self._session_factory: Callable[[], Session] = session_factory
+        elif session is not None:
+            self._session_factory = lambda: self._clone_session(session)
+        else:
+            self._session_factory = requests.Session
 
-        base = self._session_template
-        if base is None:
-            return requests.Session()
+    @staticmethod
+    def _clone_session(base: Session) -> Session:
+        """Create a new :class:`requests.Session` configured like ``base``."""
 
         cloned = requests.Session()
         cloned.headers.update(base.headers)
         cloned.params.update(base.params)
         cloned.auth = base.auth
         cloned.proxies.update(base.proxies)
-        cloned.hooks = {k: v[:] for k, v in base.hooks.items()}
+        cloned.hooks = {key: value[:] for key, value in base.hooks.items()}
         cloned.verify = base.verify
         cloned.cert = base.cert
         cloned.max_redirects = base.max_redirects
@@ -73,11 +70,7 @@ class TiingoClient:
     def _get_session(self) -> Session:
         session = getattr(self._thread_local, "session", None)
         if session is None:
-            factory = self._session_factory
-            if factory is None:
-                session = self._clone_session()
-            else:
-                session = factory()
+            session = self._session_factory()
             if session is None:
                 session = requests.Session()
             self._thread_local.session = session
@@ -142,7 +135,7 @@ class TiingoClient:
         tickers_list = list(tickers)
         results: dict[str, List[PriceBar]] = {}
         
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_ticker = {
                 executor.submit(
                     self.fetch_price_history,
