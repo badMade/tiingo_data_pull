@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up JDK 17
+      - name: Install Temurin JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
