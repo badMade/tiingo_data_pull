@@ -8,6 +8,7 @@ from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
+from requests.adapters import BaseAdapter, HTTPAdapter
 
 from ..models import PriceBar
 
@@ -170,8 +171,23 @@ class NotionClient:
         session.params = copy(source.params)
         # Preserve custom adapters (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
-            session.mount(prefix, adapter)
+            session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
+
+    @staticmethod
+    def _clone_adapter(adapter: BaseAdapter) -> BaseAdapter:
+        if isinstance(adapter, HTTPAdapter):
+            # Reconstruct the HTTPAdapter to ensure the new session receives its own
+            # connection pool. This depends on private attributes because requests
+            # does not expose a public cloning API, so future library changes could
+            # require adjustments here.
+            return HTTPAdapter(
+                pool_connections=getattr(adapter, "_pool_connections", 10),
+                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                max_retries=copy(adapter.max_retries),
+                pool_block=getattr(adapter, "_pool_block", False),
+            )
+        return adapter
 
     def _build_filter(
         self,
