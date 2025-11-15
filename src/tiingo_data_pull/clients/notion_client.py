@@ -190,7 +190,7 @@ class NotionClient:
                 pool_block=getattr(adapter, "_pool_block", False),
             )
 
-        if isinstance(adapter, HTTPAdapter):
+        if type(adapter) is not HTTPAdapter and isinstance(adapter, HTTPAdapter):
             # Subclasses often embed additional state (e.g., thread locks) that
             # cannot be deep-copied. Falling back to the original adapter keeps
             # those implementations functional even if they share pools across
