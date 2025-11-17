@@ -176,7 +176,7 @@ class NotionClient:
 
     @staticmethod
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
-        if isinstance(adapter, HTTPAdapter):
+        if type(adapter) is HTTPAdapter:
             # Rebuild HTTPAdapter instances so each cloned session receives its own
             # connection pool. This relies on private attributes because requests
             # lacks a public adapter cloning API, so future changes to its internals
