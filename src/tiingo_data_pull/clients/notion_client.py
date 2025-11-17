@@ -1,8 +1,7 @@
 """Compatibility exports for the Notion integration."""
 from __future__ import annotations
 
-import logging
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
@@ -177,26 +176,29 @@ class NotionClient:
 
     @staticmethod
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
-        try:
-            return copy(adapter)
-        except Exception as e:
-            logging.warning("Failed to copy adapter %r: %s. Retrying with rebuild.", adapter, e)
-            adapter_cls = type(adapter)
-            adapter_kwargs: Dict[str, object] = {}
-            if (max_retries := getattr(adapter, "max_retries", None)) is not None:
-                try:
-                    adapter_kwargs["max_retries"] = copy(max_retries)
-                except Exception:
-                    adapter_kwargs["max_retries"] = max_retries
-            try:
-                return adapter_cls(**adapter_kwargs)
-            except Exception as e2:
-                logging.warning(
-                    "Failed to rebuild adapter of type %s: %s. Falling back to original adapter.",
-                    adapter_cls.__name__,
-                    e2,
-                )
-                return adapter
+        """Return a new adapter instance preserving configuration."""
+
+        if type(adapter) is HTTPAdapter:
+            # Reconstructing HTTPAdapter relies on private attributes to ensure
+            # the cloned session gets a fresh connection pool. This is fragile
+            # if `requests` changes its internals but there's no public API for
+            # cloning adapters safely.
+            return HTTPAdapter(
+                pool_connections=getattr(adapter, "_pool_connections", 10),
+                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                max_retries=copy(adapter.max_retries),
+                pool_block=getattr(adapter, "_pool_block", False),
+            )
+
+        if type(adapter) is not HTTPAdapter and isinstance(adapter, HTTPAdapter):
+            # Subclasses often embed additional state (e.g., thread locks) that
+            # cannot be deep-copied. Falling back to the original adapter keeps
+            # those implementations functional even if they share pools across
+            # cloned sessions, matching the behaviour before adapter cloning
+            # was introduced.
+            return adapter
+
+        return deepcopy(adapter)
 
     def _build_filter(
         self,
