@@ -7,7 +7,7 @@ from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
-from requests.adapters import BaseAdapter, HTTPAdapter, DEFAULT_POOLSIZE
+from requests.adapters import HTTPAdapter
 
 from ..models import PriceBar
 
@@ -174,18 +174,25 @@ class NotionClient:
         return session
 
     @staticmethod
-    def _clone_adapter(adapter: BaseAdapter) -> BaseAdapter:
+    def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
         if isinstance(adapter, HTTPAdapter):
-            # Reconstruct the HTTPAdapter to ensure the new session receives its own
-            # connection pool. This depends on private attributes because requests
-            # does not expose a public cloning API, so future library changes could
-            # require adjustments here.
-            return HTTPAdapter(
-                pool_connections=getattr(adapter, "_pool_connections", DEFAULT_POOLSIZE),
-                pool_maxsize=getattr(adapter, "_pool_maxsize", DEFAULT_POOLSIZE),
-                max_retries=copy(adapter.max_retries),
-                pool_block=getattr(adapter, "_pool_block", False),
-            )
+            # Rebuild HTTPAdapter instances (including subclasses) so each cloned
+            # session receives its own connection pool.
+            # This relies on private attributes because requests lacks a public
+            # adapter cloning API, so future changes to its internals could
+            # require revisiting this logic.
+            adapter_class = type(adapter)
+            try:
+                return adapter_class(
+                    pool_connections=getattr(adapter, "_pool_connections", 10),
+                    pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                    max_retries=getattr(adapter, "max_retries", None),
+                    pool_block=getattr(adapter, "_pool_block", False),
+                )
+            except TypeError:
+                # If the subclass has a different constructor signature,
+                # fall back to reusing the original adapter.
+                return adapter
         return adapter
 
     def _build_filter(
