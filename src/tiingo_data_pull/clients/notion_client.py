@@ -181,7 +181,10 @@ class NotionClient:
             adapter_cls = type(adapter)
             adapter_kwargs: Dict[str, object] = {}
             if (max_retries := getattr(adapter, "max_retries", None)) is not None:
-                adapter_kwargs["max_retries"] = copy(max_retries)
+                try:
+                    adapter_kwargs["max_retries"] = copy(max_retries)
+                except Exception:
+                    adapter_kwargs["max_retries"] = max_retries
             try:
                 return adapter_cls(**adapter_kwargs)
             except Exception:
