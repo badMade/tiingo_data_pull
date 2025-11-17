@@ -1,6 +1,7 @@
 """Compatibility exports for the Notion integration."""
 from __future__ import annotations
 
+import logging
 from copy import copy
 from dataclasses import dataclass
 from datetime import date
@@ -177,7 +178,8 @@ class NotionClient:
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
         try:
             return copy(adapter)
-        except Exception:
+        except Exception as e:
+            logging.warning("Failed to copy adapter %r: %s. Retrying with rebuild.", adapter, e)
             adapter_cls = type(adapter)
             adapter_kwargs: Dict[str, object] = {}
             if (max_retries := getattr(adapter, "max_retries", None)) is not None:
@@ -187,7 +189,12 @@ class NotionClient:
                     adapter_kwargs["max_retries"] = max_retries
             try:
                 return adapter_cls(**adapter_kwargs)
-            except Exception:
+            except Exception as e2:
+                logging.warning(
+                    "Failed to rebuild adapter of type %s: %s. Falling back to original adapter.",
+                    adapter_cls.__name__,
+                    e2,
+                )
                 return adapter
 
     def _build_filter(
