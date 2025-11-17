@@ -9,6 +9,7 @@ from threading import local
 from typing import Dict, List, Optional, Sequence, Set
 
 import requests
+from requests.adapters import HTTPAdapter
 
 from ..models import PriceBar
 
@@ -167,8 +168,8 @@ class NotionClient:
         session.cert = source.cert
         session.trust_env = source.trust_env
         session.max_redirects = source.max_redirects
-        session.hooks = copy(source.hooks)
-        session.params = copy(source.params)
+        session.hooks = source.hooks.copy()
+        session.params = source.params.copy()
         # Preserve custom adapters (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
             session.mount(prefix, NotionClient._clone_adapter(adapter))
