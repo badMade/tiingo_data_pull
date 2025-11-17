@@ -1,6 +1,8 @@
 """Compatibility exports for the Notion integration."""
 from __future__ import annotations
 
+import logging
+from copy import copy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
@@ -175,25 +177,26 @@ class NotionClient:
 
     @staticmethod
     def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
-        if isinstance(adapter, HTTPAdapter):
-            # Rebuild HTTPAdapter instances (including subclasses) so each cloned
-            # session receives its own connection pool.
-            # This relies on private attributes because requests lacks a public
-            # adapter cloning API, so future changes to its internals could
-            # require revisiting this logic.
-            adapter_class = type(adapter)
+        try:
+            return copy(adapter)
+        except Exception as e:
+            logging.warning("Failed to copy adapter %r: %s. Retrying with rebuild.", adapter, e)
+            adapter_cls = type(adapter)
+            adapter_kwargs: Dict[str, object] = {}
+            if (max_retries := getattr(adapter, "max_retries", None)) is not None:
+                try:
+                    adapter_kwargs["max_retries"] = copy(max_retries)
+                except Exception:
+                    adapter_kwargs["max_retries"] = max_retries
             try:
-                return adapter_class(
-                    pool_connections=getattr(adapter, "_pool_connections", 10),
-                    pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
-                    max_retries=getattr(adapter, "max_retries", None),
-                    pool_block=getattr(adapter, "_pool_block", False),
+                return adapter_cls(**adapter_kwargs)
+            except Exception as e2:
+                logging.warning(
+                    "Failed to rebuild adapter of type %s: %s. Falling back to original adapter.",
+                    adapter_cls.__name__,
+                    e2,
                 )
-            except TypeError:
-                # If the subclass has a different constructor signature,
-                # fall back to reusing the original adapter.
                 return adapter
-        return adapter
 
     def _build_filter(
         self,
