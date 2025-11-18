@@ -53,7 +53,8 @@ class NotionClient:
             session: Optional HTTP session.
             timeout: Request timeout in seconds.
             page_size: Number of rows to request per query (max 100).
-            max_pages: Maximum pagination depth to stay within free tier quotas.
+            max_pages: Maximum pagination depth to stay within free tier
+                quotas.
         """
 
         self._api_key = api_key
@@ -169,7 +170,8 @@ class NotionClient:
         session.max_redirects = source.max_redirects
         session.hooks = source.hooks.copy()
         session.params = source.params.copy()
-        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
+        # Preserve custom adapters (e.g., retry, cache, connection pool
+        # configs)
         for prefix, adapter in source.adapters.items():
             session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
@@ -230,9 +232,13 @@ class NotionClient:
             return filters[0]
         return {"and": filters}
 
-    def _extract_date_from_page(self, page: Dict[str, object]) -> Optional[str]:
+    def _extract_date_from_page(
+        self, page: Dict[str, object]
+    ) -> Optional[str]:
         try:
-            date_str = page["properties"][self._properties.date_property]["date"]["start"]
+            date_str = page["properties"][self._properties.date_property][
+                "date"
+            ]["start"]
             if isinstance(date_str, str):
                 return date_str
             return None
@@ -270,7 +276,9 @@ class NotionClient:
         }
 
         if price.adj_close is not None:
-            properties[self._properties.adj_close_property] = {"number": price.adj_close}
+            properties[self._properties.adj_close_property] = {
+                "number": price.adj_close
+            }
 
         return {
             "parent": {"database_id": self._database_id},
