@@ -5,7 +5,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, cast
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -240,15 +240,25 @@ class NotionClient:
     def _extract_date_from_page(
         self, page: Dict[str, object]
     ) -> Optional[str]:
-        try:
-            date_str = page["properties"][self._properties.date_property][
-                "date"
-            ]["start"]
-            if isinstance(date_str, str):
-                return date_str
+        properties_obj = page.get("properties")
+        if not isinstance(properties_obj, Mapping):
             return None
-        except (KeyError, TypeError):
+        properties = cast(Mapping[str, Any], properties_obj)
+
+        date_property_obj = properties.get(self._properties.date_property)
+        if not isinstance(date_property_obj, Mapping):
             return None
+        date_property = cast(Mapping[str, Any], date_property_obj)
+
+        date_value_obj = date_property.get("date")
+        if not isinstance(date_value_obj, Mapping):
+            return None
+        date_value = cast(Mapping[str, Any], date_value_obj)
+
+        start_value = date_value.get("start")
+        if isinstance(start_value, str):
+            return start_value
+        return None
 
     def _price_to_page_payload(self, price: PriceBar) -> Dict[str, object]:
         properties: Dict[str, object] = {
