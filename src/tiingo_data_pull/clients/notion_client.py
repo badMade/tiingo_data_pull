@@ -1,8 +1,7 @@
 """Compatibility exports for the Notion integration."""
 from __future__ import annotations
 
-from copy import copy
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
