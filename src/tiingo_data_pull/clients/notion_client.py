@@ -213,8 +213,6 @@ class NotionClient:
     def _copy_or_source(value: Optional[T]) -> Optional[T]:
         """Return a shallow copy of ``value`` when possible."""
 
-        if value is None:
-            return None
         try:
             return copy(value)
         except TypeError:
