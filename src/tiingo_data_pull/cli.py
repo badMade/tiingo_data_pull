@@ -74,7 +74,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="If supplied, fetch data and write JSON but skip Notion/Drive updates.",
+        help=(
+            "If supplied, fetch data and write JSON but skip Notion/Drive updates "
+            "(Drive credentials not required)."
+        ),
     )
     return parser.parse_args(argv)
 
@@ -86,8 +89,9 @@ def run(argv: Optional[List[str]] = None) -> None:
     tickers = _load_tickers(args.tickers)
 
     tiingo_api_key = _require_env("TIINGO_API_KEY")
-    drive_folder_id = _require_env("GOOGLE_DRIVE_FOLDER_ID")
+    drive_folder_id: Optional[str] = None
     if not args.dry_run:
+        drive_folder_id = _require_env("GOOGLE_DRIVE_FOLDER_ID")
         _require_env("GOOGLE_OAUTH_CLIENT_SECRETS_FILE")
 
     notion_config = load_notion_config(
