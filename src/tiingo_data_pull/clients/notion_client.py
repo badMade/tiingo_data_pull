@@ -56,7 +56,8 @@ class NotionClient:
             session: Optional HTTP session.
             timeout: Request timeout in seconds.
             page_size: Number of rows to request per query (max 100).
-            max_pages: Maximum pagination depth to stay within free tier quotas.
+            max_pages: Maximum pagination depth to stay within free tier
+                quotas.
         """
 
         self._api_key = api_key
@@ -178,14 +179,16 @@ class NotionClient:
         return session
 
     @staticmethod
-    def _clone_adapter(adapter: requests.adapters.BaseAdapter) -> requests.adapters.BaseAdapter:
+    def _clone_adapter(
+        adapter: requests.adapters.BaseAdapter,
+    ) -> requests.adapters.BaseAdapter:
         """Return a new adapter instance preserving configuration."""
 
         if type(adapter) is HTTPAdapter:
-            # Reconstructing HTTPAdapter relies on private attributes to ensure
-            # the cloned session gets a fresh connection pool. This is fragile
-            # if `requests` changes its internals but there's no public API for
-            # cloning adapters safely.
+            # Reconstructing HTTPAdapter relies on private attributes to
+            # ensure the cloned session gets a fresh connection pool. This is
+            # fragile if `requests` changes its internals but there's no
+            # public API for cloning adapters safely.
             return HTTPAdapter(
                 pool_connections=getattr(adapter, "_pool_connections", 10),
                 pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
@@ -193,12 +196,15 @@ class NotionClient:
                 pool_block=getattr(adapter, "_pool_block", False),
             )
 
-        if type(adapter) is not HTTPAdapter and isinstance(adapter, HTTPAdapter):
-            # Subclasses often embed additional state (e.g., thread locks) that
-            # cannot be deep-copied. Falling back to the original adapter keeps
-            # those implementations functional even if they share pools across
-            # cloned sessions, matching the behaviour before adapter cloning
-            # was introduced.
+        if (
+            type(adapter) is not HTTPAdapter
+            and isinstance(adapter, HTTPAdapter)
+        ):
+            # Subclasses often embed additional state (e.g., thread locks)
+            # that cannot be deep-copied. Falling back to the original
+            # adapter keeps those implementations functional even if they
+            # share pools across cloned sessions, matching the behaviour
+            # before adapter cloning was introduced.
             return adapter
 
         return deepcopy(adapter)
@@ -244,9 +250,13 @@ class NotionClient:
             return filters[0]
         return {"and": filters}
 
-    def _extract_date_from_page(self, page: Dict[str, object]) -> Optional[str]:
+    def _extract_date_from_page(
+        self, page: Dict[str, object]
+    ) -> Optional[str]:
         try:
-            date_str = page["properties"][self._properties.date_property]["date"]["start"]
+            date_str = page["properties"][self._properties.date_property][
+                "date"
+            ]["start"]
             if isinstance(date_str, str):
                 return date_str
             return None
@@ -284,7 +294,9 @@ class NotionClient:
         }
 
         if price.adj_close is not None:
-            properties[self._properties.adj_close_property] = {"number": price.adj_close}
+            properties[self._properties.adj_close_property] = {
+                "number": price.adj_close
+            }
 
         return {
             "parent": {"database_id": self._database_id},
