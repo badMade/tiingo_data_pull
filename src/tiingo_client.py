@@ -29,7 +29,8 @@ def fetch_prices(
         ticker: Symbol to query.
         start: Inclusive start date.
         end: Inclusive end date.
-        api_key: Optional explicit Tiingo API key. Defaults to ``TIINGO_API_KEY``.
+        api_key: Optional explicit Tiingo API key. Defaults to
+            environment variable ``TIINGO_API_KEY``.
         session: Optional :class:`requests.Session` to reuse connections.
         timeout: Timeout in seconds for the HTTP request.
 
@@ -39,7 +40,8 @@ def fetch_prices(
 
     token = api_key or os.getenv("TIINGO_API_KEY")
     if not token:
-        raise RuntimeError("TIINGO_API_KEY must be set before calling fetch_prices().")
+        raise RuntimeError(
+            "TIINGO_API_KEY must be set before calling fetch_prices().")
 
     payload = {
         "startDate": start.isoformat(),
@@ -57,13 +59,15 @@ def fetch_prices(
 
     if not response.ok:
         raise TiingoApiError(
-            f"Tiingo request failed for {ticker}: {response.status_code} {response.text}",
+            f"Tiingo request failed for {ticker}:\n"
+            f"{response.status_code} {response.text}",
         )
 
     data = response.json()
     if not isinstance(data, list):
         raise TiingoApiError(
-            "Unexpected Tiingo response payload. Expected a list of price objects.",
+            "Unexpected Tiingo response payload. "
+            "Expected a list of price objects.",
         )
 
     return data
