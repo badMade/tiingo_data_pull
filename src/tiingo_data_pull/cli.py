@@ -77,7 +77,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help=(
             "If supplied, fetch data and write JSON but skip Notion/Drive updates "
             "(Drive credentials not required)."
-        ),
+        )
     )
     return parser.parse_args(argv)
 
