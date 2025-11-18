@@ -48,8 +48,8 @@ Set the following environment variables before running the pipeline:
 | `TIINGO_API_KEY` | Tiingo API token. |
 | `NOTION_API_KEY` | Notion integration secret. |
 | `NOTION_DATABASE_ID` | Target Notion database ID. |
-| `GOOGLE_DRIVE_FOLDER_ID` | Google Drive folder ID for uploads. |
-| `GOOGLE_OAUTH_CLIENT_SECRETS_FILE` | Path to the Google OAuth client secrets JSON downloaded from Google Cloud (store outside the repo). |
+| `GOOGLE_DRIVE_FOLDER_ID` | Google Drive folder ID for uploads (required unless running with `--dry-run`). |
+| `GOOGLE_OAUTH_CLIENT_SECRETS_FILE` | Path to the Google OAuth client secrets JSON downloaded from Google Cloud (store outside the repo). Required for Drive uploads but not for `--dry-run`. |
 | `GOOGLE_OAUTH_TOKEN_FILE` | *(Optional)* Path for persisting the OAuth refresh token. Defaults to `~/.config/tiingo-data-pull/google-drive-token.json`. |
 | `TIINGO_BATCH_SIZE` | *(Optional)* Override batch size for processing tickers. |
 | `TIINGO_EXPORT_DIR` | *(Optional)* Directory for generated JSON files. |
@@ -100,7 +100,7 @@ override both to simplify experimentation.
        --json-prefix tiingo_snapshot
    ```
 
-3. To perform a dry run that only validates connectivity and filtering:
+3. To perform a dry run that only validates connectivity and filtering (no Google Drive credentials required):
 
    ```bash
    python -m tiingo_data_pull.cli --tickers all_tickers.json --dry-run
