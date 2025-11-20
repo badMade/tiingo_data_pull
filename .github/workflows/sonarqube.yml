@@ -40,6 +40,11 @@ jobs:
   Analysis:
     runs-on: ubuntu-latest
 
+    env:
+      SONAR_HOST_URL: https://sonarcloud.io
+      SONAR_ORGANIZATION: badmade
+      SONAR_PROJECT_KEY: badmade_tiingo_data_pull
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -58,10 +63,15 @@ jobs:
           mv sonar-scanner-* sonar-scanner
           rm sonar-scanner.zip
 
+      - name: Assert Sonar target (safe echo)
+        run: |
+          echo "SONAR_HOST_URL=${SONAR_HOST_URL:-<unset>}"
+          echo "SONAR_ORG=${SONAR_ORGANIZATION:-<unset>}"
+          echo "PROJECT_KEY=${SONAR_PROJECT_KEY:-<unset>}"
+
       - name: Analyze with SonarQube
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}   # add the URL of your instance to the secrets of this repo with the name SONAR_HOST_URL (Settings > Secrets > Actions > add new repository secret)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed for PR decoration
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -78,8 +88,8 @@ jobs:
           fi
 
           ./sonar-scanner/bin/sonar-scanner \
-            -Dsonar.projectKey=badMade_mothership \
-            -Dsonar.organization=badmade \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.organization="${SONAR_ORGANIZATION}" \
+            -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
             "${PR_ARGS[@]}"
