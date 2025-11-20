@@ -13,10 +13,10 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 # Read version from __init__.py
 init_file = Path(__file__).parent / "src" / "tiingo_data_pull" / "__init__.py"
-version_match = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+version_match = re.search(r'^__version__\s*=\s*[\'\"]([\w\.-]+)[\'"]',
                           init_file.read_text(encoding="utf-8"), re.MULTILINE)
 if not version_match:
-    raise RuntimeError("Unable to find version string in __init__.py")
+    raise RuntimeError(f"Unable to find version string in {init_file}")
 version = version_match.group(1)
 
 setup(
