@@ -165,11 +165,19 @@ class TestLoadNotionConfig:
 class TestNotionClientSessionCloning:
     """Tests for cloning Notion client sessions."""
 
-    def test_clone_session_preserves_verify(self):
-        """Test that verify setting is preserved during cloning without disabling TLS."""
+    @pytest.mark.parametrize(
+        "verify_value",
+        [
+            True,
+            False,
+            certifi.where(),
+        ],
+    )
+    def test_clone_session_preserves_verify(self, verify_value):
+        """Test that verify setting is preserved during cloning."""
 
         source = requests.Session()
-        source.verify = certifi.where()
+        source.verify = verify_value
 
         cloned = NotionClient._clone_session(source)
 
