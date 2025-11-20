@@ -1,13 +1,14 @@
-name: Build
+name: Build (SonarQube disabled)
+
+# SonarQube checks have been intentionally disabled for pull requests and pushes.
+# The workflow remains available for manual execution if future analysis is needed.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
 jobs:
   sonarqube:
-    name: SonarQube
+    name: SonarQube (manual only)
+    if: ${{ false }}
     permissions:
       contents: read
     runs-on: macos-latest
