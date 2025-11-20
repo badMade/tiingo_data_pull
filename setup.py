@@ -1,4 +1,7 @@
 """Setup configuration for tiingo_data_pull package."""
+import re
+from pathlib import Path
+
 from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
@@ -8,9 +11,17 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and
                     not line.startswith("#")]
 
+# Read version from __init__.py
+init_file = Path(__file__).parent / "src" / "tiingo_data_pull" / "__init__.py"
+version_match = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                          init_file.read_text(encoding="utf-8"), re.MULTILINE)
+if not version_match:
+    raise RuntimeError("Unable to find version string in __init__.py")
+version = version_match.group(1)
+
 setup(
     name="tiingo_data_pull",
-    version="0.1.0",
+    version=version,
     author="badMade",
     description="Pipeline to sync Tiingo market data "
     "with Notion and Google Drive",
