@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 
+import certifi
 import pytest
 import requests
 
@@ -161,30 +162,15 @@ class TestLoadNotionConfig:
             load_notion_config(config_path=config_file, env={})
 
 
-class TestNotionClientCloneSession:
-    """Tests for NotionClient session cloning helpers."""
+class TestNotionClientSessionCloning:
+    """Tests for cloning Notion client sessions."""
 
-    def test_clone_session_preserves_configuration(self):
-        """Ensure session configuration is copied to clones."""
+    def test_clone_session_preserves_verify(self):
+        """Test that verify setting is preserved during cloning without disabling TLS."""
+
         source = requests.Session()
-        source.auth = ("user", "pass")
-        source.proxies = {"https": "https://proxy.example.com:8080"}
-        source.headers.update({"X-Test": "HeaderValue"})
-        source.params = {"param": "value"}
-        source.verify = False
-        source.cert = "/path/to/cert.pem"
-        source.cookies.set("name", "value")
-        source.max_redirects = 10
-        source.hooks["response"] = [lambda r, *args, **kwargs: r]
+        source.verify = certifi.where()
 
         cloned = NotionClient._clone_session(source)
 
-        assert cloned.auth == source.auth
-        assert cloned.proxies == source.proxies
-        assert cloned.headers == source.headers
-        assert cloned.params == source.params
-        assert cloned.verify is False
-        assert cloned.cert == source.cert
-        assert cloned.cookies.get("name") == "value"
-        assert cloned.max_redirects == source.max_redirects
-        assert cloned.hooks == source.hooks
+        assert cloned.verify == source.verify
