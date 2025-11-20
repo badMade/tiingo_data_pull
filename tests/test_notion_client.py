@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 
 import pytest
+import requests
 
+from tiingo_data_pull.clients.notion_client import NotionClient
 from tiingo_data_pull.integrations.notion_client import load_notion_config
 
 
@@ -157,3 +159,25 @@ class TestLoadNotionConfig:
 
         with pytest.raises(TypeError, match="Configuration value for 'database_id' must be a string, but found bool"):
             load_notion_config(config_path=config_file, env={})
+
+
+class TestNotionClientCloneSession:
+    """Tests for NotionClient session cloning helpers."""
+
+    def test_clone_session_preserves_auth(self):
+        """Ensure authentication configuration is copied to clones."""
+        source = requests.Session()
+        source.auth = ("user", "pass")
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.auth == source.auth
+
+    def test_clone_session_preserves_proxies(self):
+        """Test that proxies are copied during cloning."""
+        source = requests.Session()
+        source.proxies = {"https": "https://proxy.example.com:8080"}
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.proxies == source.proxies
