@@ -5,7 +5,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
-from typing import Mapping, Optional, Sequence, TypeVar
+from typing import Dict, List, Mapping, Optional, Sequence, Set, TypeVar
 
 import requests
 from requests.adapters import BaseAdapter, HTTPAdapter
@@ -166,14 +166,15 @@ class NotionClient:
         session.headers.update(source.headers)
         session.auth = source.auth
         session.cookies = source.cookies.copy()
-        session.proxies = source.proxies.   ()
+        session.proxies = source.proxies.copy() if source.proxies else {}
         session.verify = source.verify
         session.cert = source.cert
         session.trust_env = source.trust_env
         session.max_redirects = source.max_redirects
         session.hooks = NotionClient._copy_or_source(source.hooks)
         session.params = NotionClient._copy_or_source(source.params)
-        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
+        # Preserve custom adapters
+        # (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
             session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
@@ -250,7 +251,8 @@ class NotionClient:
             return None
 
         if not isinstance(
-            date_property := properties.get(self._properties.date_property), Mapping
+            date_property := properties.get(
+                self._properties.date_property), Mapping
         ):
             return None
 
