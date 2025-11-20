@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 
 import pytest
+import requests
 
+from tiingo_data_pull.clients.notion_client import NotionClient
 from tiingo_data_pull.integrations.notion_client import load_notion_config
 
 
@@ -157,3 +159,155 @@ class TestLoadNotionConfig:
 
         with pytest.raises(TypeError, match="Configuration value for 'database_id' must be a string, but found bool"):
             load_notion_config(config_path=config_file, env={})
+
+
+class TestCloneSession:
+    """Tests for NotionClient._clone_session static method."""
+
+    def test_clone_session_with_dict_params(self):
+        """Test cloning a session with dictionary params."""
+        source = requests.Session()
+        source.params = {"key": "value", "foo": "bar"}
+        source.headers.update({"User-Agent": "test-agent"})
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned is not source
+        assert cloned.params == source.params
+        assert cloned.params is not source.params
+        assert cloned.headers["User-Agent"] == "test-agent"
+
+    def test_clone_session_with_list_of_tuples_params(self):
+        """Test cloning a session with params as list of tuples."""
+        source = requests.Session()
+        source.params = [("key1", "value1"), ("key2", "value2")]
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned is not source
+        assert cloned.params == source.params
+        # For lists, copy() creates a shallow copy, so it's a new list
+        assert cloned.params is not source.params
+
+    def test_clone_session_with_none_params(self):
+        """Test cloning a session with None params."""
+        source = requests.Session()
+        source.params = None
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned is not source
+        assert cloned.params is None
+
+    def test_clone_session_preserves_headers(self):
+        """Test that headers are preserved during cloning."""
+        source = requests.Session()
+        source.headers.update({
+            "User-Agent": "custom-agent",
+            "Accept": "application/json",
+            "X-Custom-Header": "custom-value",
+        })
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.headers["User-Agent"] == "custom-agent"
+        assert cloned.headers["Accept"] == "application/json"
+        assert cloned.headers["X-Custom-Header"] == "custom-value"
+
+    def test_clone_session_preserves_auth(self):
+        """Test that authentication is preserved during cloning."""
+        source = requests.Session()
+        source.auth = ("username", "password")
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.auth == source.auth
+
+    def test_clone_session_preserves_proxies(self):
+        """Test that proxies are copied during cloning."""
+        source = requests.Session()
+        source.proxies = {"http": "http://proxy.example.com:8080"}
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.proxies == source.proxies
+        assert cloned.proxies is not source.proxies
+
+    def test_clone_session_preserves_verify(self):
+        """Test that verify setting is preserved during cloning."""
+        source = requests.Session()
+        source.verify = False
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.verify is False
+
+    def test_clone_session_preserves_cert(self):
+        """Test that cert setting is preserved during cloning."""
+        source = requests.Session()
+        source.cert = "/path/to/cert.pem"
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.cert == "/path/to/cert.pem"
+
+    def test_clone_session_preserves_trust_env(self):
+        """Test that trust_env setting is preserved during cloning."""
+        source = requests.Session()
+        source.trust_env = False
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.trust_env is False
+
+    def test_clone_session_preserves_max_redirects(self):
+        """Test that max_redirects setting is preserved during cloning."""
+        source = requests.Session()
+        source.max_redirects = 5
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.max_redirects == 5
+
+    def test_clone_session_with_hooks(self):
+        """Test that hooks are copied during cloning."""
+        def hook_function(r, *args, **kwargs):
+            return r
+
+        source = requests.Session()
+        source.hooks["response"] = [hook_function]
+
+        cloned = NotionClient._clone_session(source)
+
+        assert "response" in cloned.hooks
+        assert cloned.hooks["response"] == source.hooks["response"]
+        # Verify hooks dict is copied, not shared
+        assert cloned.hooks is not source.hooks
+
+    def test_clone_session_with_empty_params(self):
+        """Test cloning a session with empty dict params."""
+        source = requests.Session()
+        source.params = {}
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.params == {}
+        assert cloned.params is not source.params
+
+    def test_clone_session_independence(self):
+        """Test that modifications to cloned session don't affect source."""
+        source = requests.Session()
+        source.params = {"original": "value"}
+        source.headers.update({"X-Original": "header"})
+
+        cloned = NotionClient._clone_session(source)
+
+        # Modify cloned session
+        cloned.params["new_key"] = "new_value"
+        cloned.headers["X-New"] = "new-header"
+
+        # Source should remain unchanged
+        assert "new_key" not in source.params
+        assert "X-New" not in source.headers
+        assert source.params == {"original": "value"}
+        assert source.headers["X-Original"] == "header"

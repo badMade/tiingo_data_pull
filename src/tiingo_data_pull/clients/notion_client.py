@@ -8,7 +8,7 @@ from threading import local
 from typing import Dict, List, Mapping, Optional, Sequence, Set
 
 import requests
-from requests.adapters import HTTPAdapter
+from requests.adapters import BaseAdapter, HTTPAdapter
 
 from ..models import PriceBar
 
@@ -25,6 +25,9 @@ class NotionPropertyConfig:
     low_property: str = "Low"
     volume_property: str = "Volume"
     adj_close_property: str = "Adj Close"
+
+
+T = TypeVar("T")
 
 
 class NotionClient:
@@ -162,50 +165,53 @@ class NotionClient:
         session = requests.Session()
         session.headers.update(source.headers)
         session.auth = source.auth
-        session.cookies = source.cookies.copy()
-        session.proxies = source.proxies.copy()
+        session.cookies = NotionClient._copy_or_source(source.cookies)
+        session.proxies = NotionClient._copy_or_source(source.proxies)
         session.verify = source.verify
         session.cert = source.cert
         session.trust_env = source.trust_env
         session.max_redirects = source.max_redirects
-        session.hooks = source.hooks.copy()
-        session.params = source.params.copy()
-        # Preserve custom adapters (e.g., retry, cache, connection pool
-        # configs)
+        session.hooks = NotionClient._copy_or_source(source.hooks)
+        session.params = NotionClient._copy_or_source(source.params)
+        # Preserve custom adapters (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
             session.mount(prefix, NotionClient._clone_adapter(adapter))
         return session
 
     @staticmethod
-    def _clone_adapter(
-        adapter: requests.adapters.BaseAdapter,
-    ) -> requests.adapters.BaseAdapter:
+    def _clone_adapter(adapter: BaseAdapter) -> BaseAdapter:
         """Return a new adapter instance preserving configuration."""
 
-        if type(adapter) is HTTPAdapter:
-            # Reconstructing HTTPAdapter relies on private attributes to
-            # ensure the cloned session gets a fresh connection pool. This is
-            # fragile if `requests` changes its internals but there's no
-            # public API for cloning adapters safely.
-            return HTTPAdapter(
-                pool_connections=getattr(adapter, "_pool_connections", 10),
-                pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
-                max_retries=copy(adapter.max_retries),
-                pool_block=getattr(adapter, "_pool_block", False),
-            )
+        if isinstance(adapter, HTTPAdapter):
+            if type(adapter) is HTTPAdapter:
+                # Reconstructing HTTPAdapter relies on private attributes to
+                # ensure the cloned session gets a fresh connection pool. This
+                # is fragile if `requests` changes its internals but there's no
+                # public API for cloning adapters safely.
+                return HTTPAdapter(
+                    pool_connections=getattr(adapter, "_pool_connections", 10),
+                    pool_maxsize=getattr(adapter, "_pool_maxsize", 10),
+                    max_retries=copy(adapter.max_retries),
+                    pool_block=getattr(adapter, "_pool_block", False),
+                )
 
-        if (
-            type(adapter) is not HTTPAdapter
-            and isinstance(adapter, HTTPAdapter)
-        ):
-            # Subclasses often embed additional state (e.g., thread locks)
-            # that cannot be deep-copied. Falling back to the original
-            # adapter keeps those implementations functional even if they
-            # share pools across cloned sessions, matching the behaviour
-            # before adapter cloning was introduced.
+            # Subclasses often embed additional state (e.g., thread locks) that
+            # cannot be deep-copied. Falling back to the original adapter keeps
+            # those implementations functional even if they share pools across
+            # cloned sessions, matching the behaviour before adapter cloning
+            # was introduced.
             return adapter
 
         return deepcopy(adapter)
+
+    @staticmethod
+    def _copy_or_source(value: Optional[T]) -> Optional[T]:
+        """Return a shallow copy of ``value`` when possible."""
+
+        try:
+            return copy(value)
+        except TypeError:
+            return value
 
     def _build_filter(
         self,
