@@ -166,13 +166,17 @@ class NotionClient:
         session.headers.update(source.headers)
         session.auth = source.auth
         session.cookies = source.cookies.copy()
-        session.proxies = source.proxies.copy() if source.proxies else {}
+        proxies = source.proxies
+        session.proxies = dict(proxies) if proxies else {}
         session.verify = source.verify
         session.cert = source.cert
         session.trust_env = source.trust_env
         session.max_redirects = source.max_redirects
-        session.hooks = NotionClient._copy_or_source(source.hooks)
-        session.params = NotionClient._copy_or_source(source.params)
+        hooks = NotionClient._copy_or_source(source.hooks)
+        session.hooks = hooks or {}
+        params = NotionClient._copy_or_source(source.params)
+        if params is not None:
+            session.params = params
         # Preserve custom adapters
         # (e.g., retry, cache, connection pool configs)
         for prefix, adapter in source.adapters.items():
