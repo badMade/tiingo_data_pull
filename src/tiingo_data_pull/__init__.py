@@ -1,4 +1,4 @@
-"""Tiingo data pull package."""
+"""Utilities to pull Tiingo market data into Notion and Google Drive."""
 
 __version__ = "0.1.0"
 
