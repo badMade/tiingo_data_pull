@@ -5,8 +5,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass
 from datetime import date
 from threading import local
-from typing import Dict, List, Optional, Sequence, Set
-from typing import TypeVar
+from typing import Dict, List, Optional, Sequence, Set, TypeVar
 
 import requests
 from requests.adapters import BaseAdapter, HTTPAdapter
