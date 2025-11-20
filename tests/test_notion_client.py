@@ -164,20 +164,27 @@ class TestLoadNotionConfig:
 class TestNotionClientCloneSession:
     """Tests for NotionClient session cloning helpers."""
 
-    def test_clone_session_preserves_auth(self):
-        """Ensure authentication configuration is copied to clones."""
+    def test_clone_session_preserves_configuration(self):
+        """Ensure session configuration is copied to clones."""
         source = requests.Session()
         source.auth = ("user", "pass")
+        source.proxies = {"https": "https://proxy.example.com:8080"}
+        source.headers.update({"X-Test": "HeaderValue"})
+        source.params = {"param": "value"}
+        source.verify = False
+        source.cert = "/path/to/cert.pem"
+        source.cookies.set("name", "value")
+        source.max_redirects = 10
+        source.hooks["response"] = [lambda r, *args, **kwargs: r]
 
         cloned = NotionClient._clone_session(source)
 
         assert cloned.auth == source.auth
-
-    def test_clone_session_preserves_proxies(self):
-        """Test that proxies are copied during cloning."""
-        source = requests.Session()
-        source.proxies = {"https": "https://proxy.example.com:8080"}
-
-        cloned = NotionClient._clone_session(source)
-
         assert cloned.proxies == source.proxies
+        assert cloned.headers == source.headers
+        assert cloned.params == source.params
+        assert cloned.verify is False
+        assert cloned.cert == source.cert
+        assert cloned.cookies.get("name") == "value"
+        assert cloned.max_redirects == source.max_redirects
+        assert cloned.hooks == source.hooks
