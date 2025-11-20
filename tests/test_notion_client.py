@@ -2,8 +2,11 @@
 import json
 from pathlib import Path
 
+import certifi
 import pytest
+import requests
 
+from tiingo_data_pull.clients.notion_client import NotionClient
 from tiingo_data_pull.integrations.notion_client import load_notion_config
 
 
@@ -157,3 +160,17 @@ class TestLoadNotionConfig:
 
         with pytest.raises(TypeError, match="Configuration value for 'database_id' must be a string, but found bool"):
             load_notion_config(config_path=config_file, env={})
+
+
+class TestNotionClientSessionCloning:
+    """Tests for cloning Notion client sessions."""
+
+    def test_clone_session_preserves_verify(self):
+        """Test that verify setting is preserved during cloning without disabling TLS."""
+
+        source = requests.Session()
+        source.verify = certifi.where()
+
+        cloned = NotionClient._clone_session(source)
+
+        assert cloned.verify == source.verify
