@@ -165,8 +165,8 @@ class NotionClient:
         session = requests.Session()
         session.headers.update(source.headers)
         session.auth = source.auth
-        session.cookies = NotionClient._copy_or_source(source.cookies)
-        session.proxies = NotionClient._copy_or_source(source.proxies)
+        session.cookies = source.cookies.copy()
+        session.proxies = source.proxies.   ()
         session.verify = source.verify
         session.cert = source.cert
         session.trust_env = source.trust_env
