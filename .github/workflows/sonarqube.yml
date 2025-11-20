@@ -62,15 +62,16 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}   # add the URL of your instance to the secrets of this repo with the name SONAR_HOST_URL (Settings > Secrets > Actions > add new repository secret)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed for PR decoration
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SCANNER_ARGS="-Dsonar.projectKey=badMade_mothership -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN"
-          
-          # Add pull request parameters when running on a PR
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            SCANNER_ARGS="$SCANNER_ARGS -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}"
-            SCANNER_ARGS="$SCANNER_ARGS -Dsonar.pullrequest.branch=${{ github.head_ref }}"
-            SCANNER_ARGS="$SCANNER_ARGS -Dsonar.pullrequest.base=${{ github.base_ref }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_ARGS="-Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+            -Dsonar.pullrequest.base=${{ github.base_ref }}"
           fi
-          
-          ./sonar-scanner/bin/sonar-scanner $SCANNER_ARGS
+
+          ./sonar-scanner/bin/sonar-scanner \
+            -Dsonar.projectKey=badMade_mothership \
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.login="$SONAR_TOKEN" \
+            $PR_ARGS
