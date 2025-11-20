@@ -100,6 +100,18 @@ override both to simplify experimentation.
        --json-prefix tiingo_snapshot
    ```
 
+   You can also launch the same CLI via the repository helper script:
+
+   ```bash
+   python run.py \
+       --tickers all_tickers.json \
+       --start-date 2020-01-01 \
+       --end-date 2024-01-01 \
+       --batch-size 8 \
+       --output-dir exports \
+       --json-prefix tiingo_snapshot
+   ```
+
 3. To perform a dry run that only validates connectivity and filtering (no Google Drive credentials required):
 
    ```bash
