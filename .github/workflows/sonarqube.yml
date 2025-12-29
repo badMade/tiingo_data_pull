@@ -40,9 +40,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SONAR_HOST_URL: https://sonarcloud.io
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
       SONAR_ORGANIZATION: badmade
-      SONAR_PROJECT_KEY: badmade_tiingo_data_pull
+      SONAR_PROJECT_KEY: badMade_tiingo_data_pull
 
     steps:
       - name: Check out repository
