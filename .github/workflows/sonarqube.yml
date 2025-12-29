@@ -65,8 +65,8 @@ jobs:
       - name: Assert Sonar target (safe echo)
         run: |
           echo "SONAR_HOST_URL=${SONAR_HOST_URL:-<unset>}"
-          echo "SONAR_ORG=${SONAR_ORGANIZATION:-<unset>}"
-          echo "PROJECT_KEY=${SONAR_PROJECT_KEY:-<unset>}"
+          echo "SONAR_ORGANIZATION=${SONAR_ORGANIZATION:-<unset>}"
+          echo "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY:-<unset>}"
 
       - name: Analyze with SonarQube
         env:
@@ -76,6 +76,9 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BRANCH_NAME: ${{ github.head_ref }}
           PR_BASE_BRANCH: ${{ github.base_ref }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ env.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ env.SONAR_PROJECT_KEY }}
         run: |
           PR_ARGS=()
 
